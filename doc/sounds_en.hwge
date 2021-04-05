@@ -1,0 +1,49 @@
+<hwge>
+<style>
+.c3 { font-size: 130%; font-weight: bold; text-align: center; }
+.c10 { margin-left: 4%; }
+</style>
+<div></div>
+<div class="c3">Звуки музыки</div>
+<div></div>
+<div class="h5">1. <a href="goto://#sect1" class="url">Introduction</a></div>
+<div class="h5">2. <a href="goto://#sect2" class="url">Keyboard</a></div>
+<div></div>
+<div id="sect1"><span class="h5">1. Introduction</span></div>
+<div></div>
+<div>This is a program for those who are beginning to get used to the world of music, trying to learn the basics
+  of musical notation, develop an ear for music.</div>
+<div>Using the virtual piano, listen to and memorize the sound of different notes on different
+  instruments - piano, violin and recorder are now supported, memorize the names of the notes
+  and how they looks on the stave.</div>
+<div>Play simple melodies, saving the result of your work in files of a special <span class="i">lm</span> format.
+  You will find several ready-made <span class="i">lm</span> files in the <span class="i">/notes</span> directory. You can
+  import melodies from files of popular formats MuseScore (<span class="i">mscz</span>), MusicXML (<span class="i">mxl</span>), midi
+  and export your work to these formats.</div>
+<div>A simple built-in note editor will help you, which allows you to edit the duration of notes,
+  insert pauses, break the melody into measures, set the time signature and key signature, set ties.</div>
+<div>The built-in player plays the created or loaded melody, allows you to change the volume,
+  tempo, connect the metronome. By the way, the metronome can be turned on separately if you need it for home
+  playing music.</div>
+<div>The program includes a set of tests, for now these are tests for melodic intervals. Perhaps they will allow
+  you develop an ear for music. Test results are saved and you can always analyze
+  your progress - special reports are provided for this (<span class="i">Analysis</span> menu item).</div>
+<div></div>
+
+<div id="sect2"><span class="h5">2. Keyboard</span></div>
+<div></div>
+<div class="c10">The 12 keys of the top row of characters, from «Q» to «}», simulate pressing the 12 piano keys from «C» to «B» of the octave that is currently on the left. </div>
+<div class="c10">12 Keys of the next row, from «A» to «Enter», - 12 piano keys from «C» to «B» of the octave that is currently on the right side. </div>
+<div class="c10">Cursor keys (Left, Right, Home, End) move the cursor over the score. </div>
+<div class="c10">Shift-Cursor Left (Right) selects a fragment of the score. </div>
+<div class="c10">Backspace deletes the previous (to the left of the cursor) note. </div>
+<div class="c10">Insert turns on the insert note mode for one time.</div>
+<div></div>
+<div class="c10">Ctrl-N clears the score.</div>
+<div class="c10">Ctrl-O opens a file in the lm format native to this program.</div>
+<div class="c10">Ctrl-S opens sheet music in lm format, native to this program.</div>
+<div class="c10">Ctrl-E opens a dialog box for editing notes.</div>
+<div class="c10">Ctrl-P opens a window for playing notes.</div>
+<div class="c10">Ctrl-Q expands the score to fill the entire window.</div>
+<div></div>
+</hwge>
