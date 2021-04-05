@@ -1453,9 +1453,9 @@ STATIC FUNCTION KeyPress( nNote )
 STATIC FUNCTION PlayKey( n )
 
    LOCAL aMenu := { aMsgs[85], aMsgs[86], aMsgs[14] }, i
-   LOCAL lAdd := .F., nTDur, nDur
+   LOCAL lAdd := .F., nTDur, nDur, lAcco := ( Valtype(n) == "A" )
 
-   IF nCurrMode == 1 .AND. Play( n := (n + ( nOctave - 1 ) * 12) )
+   IF nCurrMode == 1 .AND. Iif( lAcco, PlayAccord( n ),  Play( n := (n + ( nOctave - 1 ) * 12) ) )
 
       ShowNote( n )
       //oMainWindow:oSayNote1:SetText( Note2Text( n,.T. ) )
@@ -1470,6 +1470,8 @@ STATIC FUNCTION PlayKey( n )
          ELSEIF oIns:cargo
             hb_Ains( :aNotes, :nCurr, {n,3}, .T. )
             oIns:cargo := !oIns:cargo
+         ELSEIF lAcco
+            :aNotes[:nCurr,1] := n
          ELSE
             IF Valtype( :aNotes[:nCurr,1] ) == "A"
                AAdd( :aNotes[:nCurr,1], n )
@@ -3562,7 +3564,7 @@ STATIC FUNCTION PlayAccord( arr )
       Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), Iif( Len(arr)>4,aSounds[arr[5],1],Nil ) )
    Play( arr[1] )
 
-   RETURN NIL
+   RETURN .T.
 
 STATIC FUNCTION DlgSetAccord( oDlgParent, arr )
 
@@ -3615,19 +3617,21 @@ STATIC FUNCTION DlgSetAccord( oDlgParent, arr )
 
 STATIC FUNCTION DlgAccords()
 
-   LOCAL oDlg, oPanel, oBtn, i, j
+   LOCAL oDlg, oPanel, oBtn, i, j, cName, nPos, nPos2
    LOCAL bAcco := {|o|
       LOCAL arr, i
       IF Len(accords) >= o:cargo .AND. !Empty(accords[o:cargo])
-         PlayAccord( hb_ATokens( accords[o:cargo], ' ' ) )
+         cName := accords[o:cargo]
+         cName := Iif( (nPos := At( '[', cName )) > 0, Left( cName,nPos-1 ), cName )
+         PlayKey( hb_ATokens( cName, '-' ) )
       ELSE
          arr := { 0, 0, 0, 0 }
          IF dlgSetAccord( oDlg, arr )
             FOR i := Len( accords ) TO o:cargo
                Aadd( accords, "" )
             NEXT
-            accords[o:cargo] := Note2Text(arr[1]) + ' ' + Note2Text(arr[2]) + ;
-               Iif( arr[3]==0,"",' ' + Note2Text(arr[3]) + Iif( arr[4]==0,"",' ' + Note2Text(arr[4]) ) )
+            accords[o:cargo] := Note2Text(arr[1]) + '-' + Note2Text(arr[2]) + ;
+               Iif( arr[3]==0,"",'-' + Note2Text(arr[3]) + Iif( arr[4]==0,"",'-' + Note2Text(arr[4]) ) )
             o:title := accords[o:cargo]
             hwg_Redrawwindow( o:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
          ENDIF
@@ -3636,17 +3640,21 @@ STATIC FUNCTION DlgAccords()
       }
 
    INIT DIALOG oDlg TITLE "Accords" BACKCOLOR CLR_DLGBACK ;
-      AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 340 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX
+      AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 410 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX
 
    oDlg:oParent := oMainWindow
 
    ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
       FONT oFontHea TEXT aMsgs[76] COORS 20 BTN_CLOSE
 
-   FOR i := 1 TO 5
+   FOR i := 1 TO 7
        FOR j := 1 TO 3
+          cName := Iif( !Empty(accords).AND.Len(accords)>=(i-1)*3+j,accords[(i-1)*3+j],"" )
+          IF ( nPos := At( '[', cName ) ) > 0 .AND. ( nPos2 := hb_At( ']', cName, nPos ) ) > 0
+             cName := Substr( cName, nPos+1, nPos2-nPos-1 )
+          ENDIF
           @ 10+(j-1)*130, TOPPANE_HEIGHT+20+(i-1)*44 OWNERBUTTON oBtn SIZE 120, 32 ;
-             TEXT Iif( !Empty(accords).AND.Len(accords)>=(i-1)*3+j,accords[(i-1)*3+j],"" ) ;
+             TEXT cName ;
              COLOR CLR_BLACK ON CLICK bAcco
           oBtn:aStyle := aStyleBtn
           oBtn:cargo := (i-1)*3+j
@@ -3655,7 +3663,7 @@ STATIC FUNCTION DlgAccords()
 
    oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
 
-   @ 140, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
+   @ 140, oDlg:nHeight-40 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
       ON CLICK {|| hwg_EndDialog() }
    ATail(oDlg:aControls):aStyle := aStyleBtn

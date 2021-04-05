@@ -194,7 +194,7 @@ STATIC FUNCTION recorder_Paint()
 
    IF Len( aTable[nCurrAppl] ) >= n
       arr := aTable[nCurrAppl,n]
-      hwg_Drawtransparentbitmap( hDC, Iif(arr[1]==0,oBmpEmpty:handle,Iif(arr[1]==1,oBmpFull:handle,oBmpHalf:handle)), xc-oBmpEmpty:nWidth/2, y1, CLR_WHITE )
+      hwg_Drawtransparentbitmap( hDC, Iif(arr[1]==0,oBmpEmpty:handle,Iif(arr[1]==1,oBmpFull:handle,oBmpHalf:handle)), o:nLeft+10, y1, CLR_WHITE )
       y1 += oBmpFull:nHeight+16
       hwg_Selectobject( hDC, oPen:handle )
       hwg_Drawline( hDC, xc-20, y1-8, xc+20, y1-8 )
