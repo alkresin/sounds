@@ -87,6 +87,25 @@ HB_FUNC( SF_SETACCORD )
    data->bPause = data->bEnd = 0;
 }
 
+HB_FUNC( SF_GETVERSION )
+{
+   hb_retc( sf_version_string() );
+}
+
+/*
+ * sf_GetInfo( pData ) -> { channels, samplerate, frames }
+ */
+HB_FUNC( SF_GETINFO )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+   PHB_ITEM aInfo = hb_itemArrayNew( 3 );
+
+   hb_itemPutNL( hb_arrayGetItemPtr( aInfo, 1 ), data->sfInfo.channels );
+   hb_itemPutNL( hb_arrayGetItemPtr( aInfo, 2 ), data->sfInfo.samplerate );
+   hb_itemPutNL( hb_arrayGetItemPtr( aInfo, 3 ), data->sfInfo.frames );
+   hb_itemRelease( hb_itemReturn( aInfo ) );
+}
+
 int StreamCallback( const void *input, void *output, unsigned long frameCount,
       const PaStreamCallbackTimeInfo * paTimeInfo, PaStreamCallbackFlags statusFlags, void *userData )
 {

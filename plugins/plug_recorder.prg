@@ -106,7 +106,7 @@ STATIC FUNCTION recorder_Dlg()
 
 STATIC FUNCTION recorder_Type()
 
-   LOCAL i, oBtn
+   LOCAL i, oBtn, x1, y1
 #ifndef __PLATFORM__UNIX
    LOCAL aCoors1 := hwg_GetWindowRect( oDlgReco:oParent:handle )
    LOCAL aCoors2 := hwg_GetWindowRect( oDlgReco:handle )

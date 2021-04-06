@@ -74,8 +74,6 @@ STATIC aTest3Data := { {2,8}, {6,12}, {4,9}, {8,12}, {3,8}, {1,5}, {5,8}, {8,10}
 STATIC aTest4Data := { {2,8,12}, {6,8,12}, {4,6,9}, {3,5,7}, {2,4,6}, {1,2,3} }
 STATIC aTests := {}, nAns1
 
-STATIC accords := {}, lAccordsChg := .F.
-
 STATIC aNotesEn := { 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B' }
 STATIC aNotesRu := { 'До', 'До#', 'Ре', 'Ре#', 'Ми', 'Фа', 'Фа#', 'Соль', 'Соль#', 'Ля', 'Ля#', 'Си' }
 STATIC aOctaves[7], aIntervals[13], aIntDir[2]
@@ -84,7 +82,19 @@ STATIC aKeySign := { "0", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "1", "2", "3
 STATIC aMetres := { "1/2", "1/4", "2/4", "3/4", "4/4", "2/8", "3/8", "4/8", "6/8", "8/8" }
 STATIC aDur := { 2048, 1024, 512, 256, 128, 64, 32 }
 STATIC nCurrVol := 1, lStopBtn
-STATIC aMsgs := { "Звуки музыки", "Пиано", "Тест", "Опции", "Помощь", "Выход", ;
+
+MEMVAR oMsg, aMsgs, aPlugMenu, bPlugNote
+
+FUNCTION Main
+
+   LOCAL oTimer
+   LOCAL bPaintHea := {|o,hDC|
+      HB_SYMBOL_UNUSED( o )
+      hwg_Drawtransparentbitmap( hDC, oBmpAudio:handle, 8, Int( (oPaneHea:nHeight-oBmpAudio:nHeight)/2 ), CLR_WHITE )
+      RETURN .T.
+   }
+   PUBLIC oMsg, aPlugMenu := {}, bPlugNote
+   PUBLIC aMsgs := { "Звуки музыки", "Пиано", "Тест", "Опции", "Помощь", "Выход", ;
    "Октава от", "до", "Интервал не более", "Язык", "Закрыть", "Масштаб:", ;
    "Ok", "Отмена", "Громкость", "Инструмент", "Предыдущая октвва", "Следующая октава", ;
    "Сбросить панель нот", "Проиграть тест", "Повторить", "Результат", "Ваш ответ", ;
@@ -99,18 +109,6 @@ STATIC aMsgs := { "Звуки музыки", "Пиано", "Тест", "Опци
    "Вверх", "Вниз", "Выполнить", "Отменить", "Лига", "Отменить выделение", "Заменить", ;
    "Создать аккорд","О программе", "Ноты были изменены. Сохранить?", "Да", "Нет", ;
    "Изменения вступят в силу после перезагрузки программы" }
-
-MEMVAR oMsg, aPlugMenu, bPlugNote
-
-FUNCTION Main
-
-   LOCAL oTimer
-   LOCAL bPaintHea := {|o,hDC|
-      HB_SYMBOL_UNUSED( o )
-      hwg_Drawtransparentbitmap( hDC, oBmpAudio:handle, 8, Int( (oPaneHea:nHeight-oBmpAudio:nHeight)/2 ), CLR_WHITE )
-      RETURN .T.
-   }
-   PUBLIC oMsg, aPlugMenu := {}, bPlugNote
 
    IF hwg__isUnicode()
       hb_cdpSelect( "UTF8" )
@@ -184,7 +182,7 @@ FUNCTION Main
    ReleaseSounds()
    pa_terminate()
    IF (!Empty( cLangNew ) .AND. !(cLangNew == cLanguage) ) .OR. ;
-      (!Empty( nZoomNew ) .AND. nZoomNew != nZoom) .OR. lAccordsChg
+      (!Empty( nZoomNew ) .AND. nZoomNew != nZoom)
       IniWrite()
    ENDIF
    SaveHis()
@@ -354,7 +352,6 @@ STATIC FUNCTION SetKeyBoard()
 
    SET KEY FCONTROL, Asc("E") TO NoteEditor()
    SET KEY FCONTROL, Asc("P") TO Player()
-   SET KEY FCONTROL, Asc("A") TO DlgAccords()
    SET KEY FCONTROL, Asc("Q") TO SwitchScore()
 
    RETURN NIL
@@ -407,12 +404,6 @@ STATIC FUNCTION IniRead()
                   IF nZoom != 1 .AND. nZoom != 2 .AND. nZoom != 3
                      nZoom := 1
                   ENDIF
-               ENDIF
-            ENDIF
-         ELSEIF Upper( aIni[ nSect ] ) == "ACCORDS"
-            IF !Empty( aSect := hIni[ aIni[ nSect ] ] )
-               IF hb_HHasKey( aSect, cTemp := "list" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  accords := hb_ATokens( cTemp, ';' )
                ENDIF
             ENDIF
          ENDIF
@@ -480,16 +471,6 @@ STATIC FUNCTION IniWrite()
    s += Chr(10) + "[OPTIONS]" + Chr(10) + "langs=" + cLangs + Chr(10) + ;
       "suff=" + cSuff + Chr(10) + "lang=" + cLanguage + Chr(10)
    s += "zoom=" + Ltrim(Str(nZoom)) + Chr(10)
-
-   IF !Empty( accords )
-      cLangs := ""
-      FOR i := 1 TO Len( accords )
-         cLangs += Iif( i==1,"",";" ) + accords[i]
-      NEXT
-      s += Chr(10) + "[ACCORDS]" + Chr(10) + "list=" + cLangs + Chr(10)
-   ENDIF
-
-   s += Chr(10)
 
    hb_MemoWrit( cFile, s )
 
@@ -1450,7 +1431,7 @@ STATIC FUNCTION KeyPress( nNote )
 
    RETURN NIL
 
-STATIC FUNCTION PlayKey( n )
+FUNCTION PlayKey( n )
 
    LOCAL aMenu := { aMsgs[85], aMsgs[86], aMsgs[14] }, i
    LOCAL lAdd := .F., nTDur, nDur, lAcco := ( Valtype(n) == "A" )
@@ -1718,7 +1699,7 @@ STATIC FUNCTION ReleaseSounds()
 
    RETURN NIL
 
-STATIC FUNCTION StopAllSounds()
+FUNCTION StopAllSounds()
 
    LOCAL i
 
@@ -1867,7 +1848,7 @@ STATIC FUNCTION oScore_Other( o, msg, wp, lp)
       ym := hwg_Hiword( lp )
       nWidth := oBemol:nWidth + oNote8:nWidth + oScore:nBetween * 2
       x1 := oScore:x1 + oClef1:nWidth + 8
-      IF !lScoreLong .OR. ym < 140
+      IF !lScoreLong .OR. ( oScore:nScrStart == 1 .AND. ym < 140 )
          IF oScore:nKey != 0
             x1 += Abs( oScore:nKey ) * Iif( oScore:nKey<0, oBemol:nWidth, oDiez:nWidth )
          ENDIF
@@ -2099,7 +2080,7 @@ STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nStart )
 
                   IF lBekar
                      hwg_Drawtransparentbitmap( hDC, oBekar:handle, x1+(i-nStart)*nWidth+nBetween, ;
-                        y+oNote1:nHeight-oBekar:nHeight, CLR_WHITE )
+                        y+oNote1:nHeight-oBekar:nHeight+nLineHeight, CLR_WHITE )
                   ELSEIF nNote < 12 .AND. an[nNote] == an[nNote+1]
                      hwg_Drawtransparentbitmap( hDC, oBemol:handle, x1+(i-nStart)*nWidth+nBetween, ;
                         y+oNote1:nHeight-oBemol:nHeight, CLR_WHITE )
@@ -2967,7 +2948,7 @@ STATIC FUNCTION NoteEditor()
 
    @ 130, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
-      ON CLICK {|| oDlgEdi:Close }
+      ON CLICK {|| oDlgEdi:Close() }
    ATail(oDlgEdi:aControls):aStyle := aStyleBtn
 
    ACTIVATE DIALOG oDlgEdi NOMODAL
@@ -3566,112 +3547,6 @@ STATIC FUNCTION PlayAccord( arr )
 
    RETURN .T.
 
-STATIC FUNCTION DlgSetAccord( oDlgParent, arr )
-
-   LOCAL oDlg, oPanel, i, n1, n2, n3, n4
-   STATIC aAllNotes
-
-   INIT DIALOG oDlg TITLE "SetAccord" BACKCOLOR CLR_DLGBACK ;
-      AT 150, 150 SIZE 300, 240 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX
-
-   oDlg:oParent := oDlgParent
-
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
-      FONT oFontHea TEXT "Set Accord" COORS 20 BTN_CLOSE
-
-   IF Empty( aAllNotes )
-      aAllNotes := Array( 89 )
-      aAllNotes[1] := " "
-      FOR i := 2 TO Len( aAllNotes )
-         aAllNotes[i] := Note2Text( i-1 )
-      NEXT
-   ENDIF
-   n1 := Iif( arr[1]==0, 1, arr[1]+1 )
-   n2 := Iif( arr[2]==0, 1, arr[2]+1 )
-   n3 := Iif( arr[2]==3, 1, arr[3]+1 )
-   n4 := Iif( arr[2]==4, 1, arr[4]+1 )
-
-   @ 30,50 GET COMBOBOX n1 ITEMS aAllNotes SIZE 90, 28
-   @ 180,50 GET COMBOBOX n2 ITEMS aAllNotes SIZE 90, 28
-   @ 30,100 GET COMBOBOX n4 ITEMS aAllNotes SIZE 90, 28
-   @ 180,100 GET COMBOBOX n4 ITEMS aAllNotes SIZE 90, 28
-
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
-
-   @ 30, 200 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[13] COLOR CLR_BLACK ;
-      ON CLICK {|| Iif( n1>1.AND.n2>2, (oDlg:lResult:=.T.,hwg_EndDialog()), .F. ) }
-   ATail(oDlg:aControls):aStyle := aStyleBtn
-
-   @ 170, 200 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[14] COLOR CLR_BLACK ;
-      ON CLICK {|| hwg_EndDialog() }
-   ATail(oDlg:aControls):aStyle := aStyleBtn
-
-   ACTIVATE DIALOG oDlg
-
-   IF oDlg:lResult
-      arr[1] := n1-1; arr[2] := n2-1; arr[3] := n3-1; arr[4] := n4-1
-      lAccordsChg := .T.
-   ENDIF
-
-   RETURN oDlg:lResult
-
-STATIC FUNCTION DlgAccords()
-
-   LOCAL oDlg, oPanel, oBtn, i, j, cName, nPos, nPos2
-   LOCAL bAcco := {|o|
-      LOCAL arr, i
-      IF Len(accords) >= o:cargo .AND. !Empty(accords[o:cargo])
-         cName := accords[o:cargo]
-         cName := Iif( (nPos := At( '[', cName )) > 0, Left( cName,nPos-1 ), cName )
-         PlayKey( hb_ATokens( cName, '-' ) )
-      ELSE
-         arr := { 0, 0, 0, 0 }
-         IF dlgSetAccord( oDlg, arr )
-            FOR i := Len( accords ) TO o:cargo
-               Aadd( accords, "" )
-            NEXT
-            accords[o:cargo] := Note2Text(arr[1]) + '-' + Note2Text(arr[2]) + ;
-               Iif( arr[3]==0,"",'-' + Note2Text(arr[3]) + Iif( arr[4]==0,"",'-' + Note2Text(arr[4]) ) )
-            o:title := accords[o:cargo]
-            hwg_Redrawwindow( o:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
-         ENDIF
-      ENDIF
-      RETURN .T.
-      }
-
-   INIT DIALOG oDlg TITLE "Accords" BACKCOLOR CLR_DLGBACK ;
-      AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 410 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX
-
-   oDlg:oParent := oMainWindow
-
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
-      FONT oFontHea TEXT aMsgs[76] COORS 20 BTN_CLOSE
-
-   FOR i := 1 TO 7
-       FOR j := 1 TO 3
-          cName := Iif( !Empty(accords).AND.Len(accords)>=(i-1)*3+j,accords[(i-1)*3+j],"" )
-          IF ( nPos := At( '[', cName ) ) > 0 .AND. ( nPos2 := hb_At( ']', cName, nPos ) ) > 0
-             cName := Substr( cName, nPos+1, nPos2-nPos-1 )
-          ENDIF
-          @ 10+(j-1)*130, TOPPANE_HEIGHT+20+(i-1)*44 OWNERBUTTON oBtn SIZE 120, 32 ;
-             TEXT cName ;
-             COLOR CLR_BLACK ON CLICK bAcco
-          oBtn:aStyle := aStyleBtn
-          oBtn:cargo := (i-1)*3+j
-       NEXT
-   NEXT
-
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
-
-   @ 140, oDlg:nHeight-40 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
-      ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
-      ON CLICK {|| hwg_EndDialog() }
-   ATail(oDlg:aControls):aStyle := aStyleBtn
-
-   ACTIVATE DIALOG oDlg
-
-   RETURN NIL
-
 STATIC FUNCTION Help()
 
    LOCAL oDlg, oPanelH, oPanelT, oEdit
@@ -3777,6 +3652,7 @@ STATIC FUNCTION About()
       cText := Left( cText, nPos - 1 )
    ENDIF
    @ 20, 204 SAY cText SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
+   @ 20, 228 SAY sf_GetVersion() SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
 
    oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
 
@@ -3790,7 +3666,7 @@ STATIC FUNCTION About()
 
    RETURN NIL
 
-STATIC FUNCTION _IniRead( cFileName )
+FUNCTION _IniRead( cFileName )
 
    LOCAL cText := Memoread( cFileName ), aText, i, s, nPos
    LOCAL hIni, hSect
