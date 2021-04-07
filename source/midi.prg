@@ -385,7 +385,14 @@ METHOD AddNote( nTrack, nChan, nNote, nDur, nVol ) CLASS Midi
    IF nVol == Nil
       nVol := 0x7F
    ENDIF
-   IF nNote == 0
+   IF Valtype( nNote ) == "A"
+      FOR i := 1 TO Len( nNote )
+         AAdd( ::aTracks[nTrack], { ::nPause, hb_BitOr( 0x90,nChan ), Chr(nNote[i]+23)+Chr(nVol) } )
+      NEXT
+      FOR i := 1 TO Len( nNote )
+         AAdd( ::aTracks[nTrack], { nDur, hb_BitOr( 0x90,nChan ), Chr(nNote[i]+23)+Chr(0) } )
+      NEXT
+   ELSEIF nNote == 0
       ::nPause += nDur
    ELSE
       nNote += 23

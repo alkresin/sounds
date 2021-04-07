@@ -3004,7 +3004,7 @@ STATIC FUNCTION Transpo()
    LOCAL nz := 1, n := 1, aCombo := { "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6" }
    LOCAL aBack := {}
    LOCAL bTransp := {||
-      LOCAL i, nStart, nEnd
+      LOCAL i, j, nStart, nEnd, nTranspo
       AAdd( aBack, AClone( oScore:aNotes ) )
       oBtnBack:Enable()
       IF oScore:nSeleStart != 0
@@ -3014,9 +3014,14 @@ STATIC FUNCTION Transpo()
          nStart := 1
          nEnd := Len( oScore:aNotes )
       ENDIF
+      nTranspo := Val( aCombo[n] ) * Iif( nz==1, 2, -2 )
       FOR i := nStart TO nEnd
          IF Valtype(oScore:aNotes[i,1]) == "N" .AND. oScore:aNotes[i,1] > 0
-            oScore:aNotes[i,1] := oScore:aNotes[i,1] + Val( aCombo[n] ) * Iif( nz==1, 2, -2 )
+            oScore:aNotes[i,1] := oScore:aNotes[i,1] + nTranspo
+         ELSEIF Valtype(oScore:aNotes[i,1]) == "A"
+            FOR j := 1 TO Len( oScore:aNotes[i,1] )
+               oScore:aNotes[i,1,j] := oScore:aNotes[i,1,j] + nTranspo
+            NEXT
          ENDIF
       NEXT
       oScore:lUpdate := .T.

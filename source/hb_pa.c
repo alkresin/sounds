@@ -11,6 +11,9 @@
 #include "sndfile.h"
 #include "portaudio.h"
 
+#ifndef SF_SEEK_SET
+   #define SF_SEEK_SET   SEEK_SET
+#endif
 #define BUFFER_SIZE   512
 
 typedef struct
@@ -90,6 +93,61 @@ HB_FUNC( SF_SETACCORD )
 HB_FUNC( SF_GETVERSION )
 {
    hb_retc( sf_version_string() );
+}
+
+HB_FUNC( SF_SEEK )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+
+   sf_seek( data->sndFile, hb_parni( 2 ), SF_SEEK_SET );
+}
+
+HB_FUNC( SF_READ_FLOAT )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+   PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
+   int iLen = hb_arrayLen( pArr ), i;
+   int iCount;
+   float * out = (float *) malloc( iLen * sizeof( float ) ), * pOut;
+
+   iCount = sf_read_float( data->sndFile, out, iLen );
+
+   if( iCount )
+   {
+      pOut = out;
+      for( i = 1; i <= iCount; i ++ )
+      {
+         hb_arraySetND( pArr, i, (double) *pOut );
+         pOut ++;
+      }
+   }
+
+   free( out );
+   hb_retni( iCount );
+}
+
+HB_FUNC( SF_READ_INT )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+   PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
+   int iLen = hb_arrayLen( pArr ), i;
+   int iCount;
+   int * out = (int *) malloc( iLen * sizeof( int ) ), * pOut;
+
+   iCount = sf_read_int( data->sndFile, out, iLen );
+
+   if( iCount )
+   {
+      pOut = out;
+      for( i = 1; i <= iCount; i ++ )
+      {
+         hb_arraySetNI( pArr, i, *pOut );
+         pOut ++;
+      }
+   }
+
+   free( out );
+   hb_retni( iCount );
 }
 
 /*
