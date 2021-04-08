@@ -102,22 +102,35 @@ HB_FUNC( SF_SEEK )
    sf_seek( data->sndFile, hb_parni( 2 ), SF_SEEK_SET );
 }
 
+/*
+ * sf_read_float( pData, arr, [iOffset], [iStart], [iKol] ) -> iCount
+ */
 HB_FUNC( SF_READ_FLOAT )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
    PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
-   int iLen = hb_arrayLen( pArr ), i;
-   int iCount;
-   float * out = (float *) malloc( iLen * sizeof( float ) ), * pOut;
+   int iOffset = (HB_ISNUM(3))? hb_parni(3) : -1;
+   int iStart = (HB_ISNUM(4))? hb_parni(4)-1 : 0;
+   int iKol = (HB_ISNUM(5))? hb_parni(5) : -1;
+   int iLen = hb_arrayLen( pArr );
+   int iCount, i;
+   float * out, * pOut;
 
-   iCount = sf_read_float( data->sndFile, out, iLen );
+   if( iOffset >= 0 )
+      sf_seek( data->sndFile, iOffset, SF_SEEK_SET );
+
+   if( iKol < 0 || iStart + iKol > iLen )
+      iKol = iLen - iStart;
+
+   out = (float *) malloc( iKol * sizeof( float ) );
+   iCount = sf_read_float( data->sndFile, out, iKol );
 
    if( iCount )
    {
       pOut = out;
       for( i = 1; i <= iCount; i ++ )
       {
-         hb_arraySetND( pArr, i, (double) *pOut );
+         hb_arraySetND( pArr, i+iStart, (double) *pOut );
          pOut ++;
       }
    }
@@ -126,22 +139,35 @@ HB_FUNC( SF_READ_FLOAT )
    hb_retni( iCount );
 }
 
+/*
+ * sf_read_int( pData, arr, [iOffset], [iStart], [iKol] ) -> iCount
+ */
 HB_FUNC( SF_READ_INT )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
    PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
-   int iLen = hb_arrayLen( pArr ), i;
-   int iCount;
-   int * out = (int *) malloc( iLen * sizeof( int ) ), * pOut;
+   int iOffset = (HB_ISNUM(3))? hb_parni(3) : -1;
+   int iStart = (HB_ISNUM(3))? hb_parni(4)-1 : 0;
+   int iKol = (HB_ISNUM(3))? hb_parni(5) : -1;
+   int iLen = hb_arrayLen( pArr );
+   int iCount, i;
+   int * out, * pOut;
 
-   iCount = sf_read_int( data->sndFile, out, iLen );
+   if( iOffset >= 0 )
+      sf_seek( data->sndFile, iOffset, SF_SEEK_SET );
+
+   if( iKol < 0 || iStart + iKol > iLen )
+      iKol = iLen - iStart;
+
+   out = (int *) malloc( iKol * sizeof( int ) );
+   iCount = sf_read_int( data->sndFile, out, iKol );
 
    if( iCount )
    {
       pOut = out;
       for( i = 1; i <= iCount; i ++ )
       {
-         hb_arraySetNI( pArr, i, *pOut );
+         hb_arraySetNI( pArr, i+iStart, *pOut );
          pOut ++;
       }
    }
@@ -162,6 +188,18 @@ HB_FUNC( SF_GETINFO )
    hb_itemPutNL( hb_arrayGetItemPtr( aInfo, 2 ), data->sfInfo.samplerate );
    hb_itemPutNL( hb_arrayGetItemPtr( aInfo, 3 ), data->sfInfo.frames );
    hb_itemRelease( hb_itemReturn( aInfo ) );
+}
+
+/*
+ * sf_GetMax( pData ) -> dMax
+ */
+HB_FUNC( SF_GETMAX )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+   double dMax;
+
+   sf_command( data->sndFile, SFC_CALC_SIGNAL_MAX, &dMax, sizeof (dMax) );
+   hb_retnd( dMax );
 }
 
 int StreamCallback( const void *input, void *output, unsigned long frameCount,
