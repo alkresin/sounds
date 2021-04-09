@@ -32,6 +32,41 @@ typedef struct
    PaStream *stream;
 } StreamData;
 
+#include "hbapifs.h"
+static void _writelog( const char * sFile, int n, const char * s, ... )
+{
+
+   if( !sFile )
+      return;
+
+   if( n )
+   {
+      HB_FHANDLE handle;
+      if( hb_fsFile( sFile ) )
+         handle = hb_fsOpen( sFile, FO_WRITE );
+      else
+         handle = hb_fsCreate( sFile, 0 );
+
+      hb_fsSeek( handle,0, SEEK_END );
+      hb_fsWrite( handle, s, n );
+      hb_fsWrite( handle, "\r\n", 2 );
+      hb_fsClose( handle );
+   }
+   else
+   {
+      FILE * hFile = hb_fopen( sFile, "a" );
+
+      va_list ap;
+      if( hFile )
+      {
+         va_start( ap, s );
+         vfprintf( hFile, s, ap );
+         va_end( ap );
+         fclose( hFile );
+      }
+   }
+}
+
 HB_FUNC( SF_INITDATA )
 {
 
@@ -108,33 +143,52 @@ HB_FUNC( SF_SEEK )
 HB_FUNC( SF_READ_FLOAT )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
-   PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
+   PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY ), pSubArr;
    int iOffset = (HB_ISNUM(3))? hb_parni(3) : -1;
    int iStart = (HB_ISNUM(4))? hb_parni(4)-1 : 0;
    int iKol = (HB_ISNUM(5))? hb_parni(5) : -1;
    int iLen = hb_arrayLen( pArr );
-   int iCount, i;
+   int iCount, i, j;
    float * out, * pOut;
 
+   HB_TYPE type = hb_arrayGetType( pArr, 1 );
+   int bArr = ( type & HB_IT_ARRAY );
+   int iChan = (bArr)? hb_arrayLen( hb_arrayGetItemPtr( pArr, 1 ) ) : 1;
+
+   //_writelog( "ac.log", 0, "%d %d %d %d\r\n", iKol, iChan, iStart, iLen );
    if( iOffset >= 0 )
       sf_seek( data->sndFile, iOffset, SF_SEEK_SET );
 
    if( iKol < 0 || iStart + iKol > iLen )
       iKol = iLen - iStart;
+   iKol *= iChan;
 
    out = (float *) malloc( iKol * sizeof( float ) );
    iCount = sf_read_float( data->sndFile, out, iKol );
 
+   //_writelog( "ac.log", 0, "%d %d %d\r\n", iKol, iCount, iChan );
    if( iCount )
    {
+      if( iChan > 1 )
+         iCount /= iChan;
       pOut = out;
-      for( i = 1; i <= iCount; i ++ )
+      for( i = 1; i <= iCount; i += 1 )
       {
-         hb_arraySetND( pArr, i+iStart, (double) *pOut );
-         pOut ++;
+         if( bArr )
+         {
+            pSubArr = hb_arrayGetItemPtr( pArr, i+iStart );
+            for( j = 1; j <= iChan; j++, pOut++ )
+               hb_arraySetND( pSubArr, j, (double) *pOut );
+         }
+         else
+         {
+            hb_arraySetND( pArr, i+iStart, (double) *pOut );
+            pOut ++;
+         }
       }
    }
 
+   //_writelog( "ac.log", 0, ": %d\r\n", iCount );
    free( out );
    hb_retni( iCount );
 }
@@ -191,15 +245,36 @@ HB_FUNC( SF_GETINFO )
 }
 
 /*
- * sf_GetMax( pData ) -> dMax
+ * sf_GetRange( pData, @ymax, @ymin )
  */
-HB_FUNC( SF_GETMAX )
+HB_FUNC( SF_GETRANGE )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
-   double dMax;
+   float * out, * pOut;
+   float fMax = 0, fMin = 0;
+   int iKol = 2048, iCount, i, iOffset = 0;
 
-   sf_command( data->sndFile, SFC_CALC_SIGNAL_MAX, &dMax, sizeof (dMax) );
-   hb_retnd( dMax );
+   out = (float *) malloc( iKol * sizeof( float ) );
+
+   do {
+      sf_seek( data->sndFile, iOffset, SF_SEEK_SET );
+      iOffset += iKol;
+      iCount = sf_read_float( data->sndFile, out, iKol );
+      pOut = out;
+      for( i = 0; i < iCount; i ++, pOut ++ )
+      {
+         if( *pOut > fMax )
+            fMax = *pOut;
+         if( *pOut < fMin )
+            fMin = *pOut;
+      }
+   }
+   while( iCount == iKol );
+
+   free( out );
+
+   hb_stornd( (double) fMax, 2 );
+   hb_stornd( (double) fMin, 3 );
 }
 
 int StreamCallback( const void *input, void *output, unsigned long frameCount,
