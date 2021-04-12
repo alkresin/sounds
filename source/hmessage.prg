@@ -1,5 +1,5 @@
 /*
- * HWGUI - Harbour Win32 GUI library source code:
+ * HWGUI - Harbour GUI library source code:
  * HMessage class
  *
  * Copyright 2021 Alexander S.Kresin <alex@kresin.ru>
@@ -30,11 +30,11 @@ CLASS HMessage INHERIT HObject
 
    METHOD New()
    METHOD Set( oFont, nClrText, nClrBack, lNoWndTitle, oFontHea, nClrHeaText, nClrHeaBack, aStyleBtn )
-   METHOD Message( cText, cTitle, ... )
-   METHOD MsgInfo( cText, cTitle )
-   METHOD MsgStop( cText, cTitle )
-   METHOD MsgYesNo( cText, cTitle )
-   METHOD MsgYesNoCancel( cText, cTitle )
+   METHOD Message( cText, cTitle, oImage, nAlign, ... )
+   METHOD MsgInfo( cText, cTitle, nAlign )
+   METHOD MsgStop( cText, cTitle, nAlign )
+   METHOD MsgYesNo( cText, cTitle, nAlign )
+   METHOD MsgYesNoCancel( cText, cTitle, nAlign )
    METHOD MsgGet( cTitle, ... )
 ENDCLASS
 
@@ -56,7 +56,7 @@ METHOD Set( oFont, nClrText, nClrBack, lNoWndTitle, oFontHea, ;
 
    RETURN Nil
 
-METHOD Message( cText, cTitle, oImage, ... ) CLASS HMessage
+METHOD Message( cText, cTitle, oImage, nAlign, ... ) CLASS HMessage
 
    LOCAL oDlg, oPanelH, arr, i, nLenMax := 0, nLineHeight, nBtnLenMax := 60, nDlgWidth, x1, y1 := 20
    LOCAL aParams := hb_aParams()
@@ -81,8 +81,8 @@ METHOD Message( cText, cTitle, oImage, ... ) CLASS HMessage
    FOR i := 1 TO Len( arr )
       nLenMax := Max( nLenMax, hwg_GetTextSize( hDC, arr[i] )[1] )
    NEXT
-   nLineHeight := hwg_GetTextSize( hDC, arr[1] )[2] + 2
-   FOR i := 4 TO Len( aParams )
+   nLineHeight := hwg_GetTextSize( hDC, arr[1] )[2] + 4
+   FOR i := 5 TO Len( aParams )
       nBtnLenMax := Max( nBtnLenMax, hwg_GetTextSize( hDC, aParams[i] )[1] )
    NEXT
    IF ::oFont != Nil
@@ -91,14 +91,14 @@ METHOD Message( cText, cTitle, oImage, ... ) CLASS HMessage
    hwg_ReleaseDC( HWindow():GetMain():handle, hDC )
    nLenMax += 32
    nBtnLenMax += 32
-   nDlgWidth := Max( nLenMax + 40, (nBtnLenMax+16) * (Len(aParams)-3) + 24 )
+   nDlgWidth := Max( nLenMax + 40, (nBtnLenMax+16) * (Len(aParams)-4) + 24 )
 
    IF ::lWndTitle
       INIT DIALOG oDlg TITLE cTitle BACKCOLOR ::nClrBack ;
-         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 100
+         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 120
    ELSE
       INIT DIALOG oDlg TITLE cTitle BACKCOLOR ::nClrBack ;
-         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 120 STYLE WND_NOTITLE + WND_NOSIZEBOX
+         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 140 STYLE WND_NOTITLE + WND_NOSIZEBOX
       ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR ::nClrHeaText BACKCOLOR ::nClrHeaBack ;
          FONT ::oFontHea TEXT cTitle COORS 20
       IF !Empty( oImage )
@@ -108,20 +108,23 @@ METHOD Message( cText, cTitle, oImage, ... ) CLASS HMessage
       y1 += oPanelH:nHeight
    ENDIF
 
+   IF nAlign == Nil
+      nAlign := SS_CENTER
+   ENDIF
    x1 := Int((nDlgWidth - nLenMax) / 2 )
    FOR i := 1 TO Len( arr )
       @ x1, y1+(i-1)*(nLineHeight+4) SAY arr[i] SIZE nLenMax, nLineHeight ;
-         STYLE SS_CENTER COLOR ::nClrText TRANSPARENT
+         STYLE nAlign COLOR ::nClrText TRANSPARENT
    NEXT
 
-   x1 := Int( ( nDlgWidth - (nBtnLenMax+16) * (Len(aParams)-3) + 16 ) / 2 )
-   FOR i := 4 TO Len( aParams )
+   x1 := Int( ( nDlgWidth - (nBtnLenMax+16) * (Len(aParams)-4) + 16 ) / 2 )
+   FOR i := 5 TO Len( aParams )
       IF Empty( ::aStyleBtn )
-         @ x1 + (i-4)*(nBtnLenMax+16), oDlg:nHeight-48 BUTTON aParams[i] SIZE nBtnLenMax, 32 ;
-            ON CLICK &( "{||nRes:="+Ltrim(Str(i-3))+",hwg_EndDialog()}" )
+         @ x1 + (i-5)*(nBtnLenMax+16), oDlg:nHeight-48 BUTTON aParams[i] SIZE nBtnLenMax, 32 ;
+            ON CLICK &( "{||nRes:="+Ltrim(Str(i-4))+",hwg_EndDialog()}" )
       ELSE
-         @ x1 + (i-4)*(nBtnLenMax+16), oDlg:nHeight-48 OWNERBUTTON SIZE nBtnLenMax, 32 ;
-            TEXT aParams[i] COLOR CLR_BLACK ON CLICK &( "{||nRes:="+Ltrim(Str(i-3))+",hwg_EndDialog()}" )
+         @ x1 + (i-5)*(nBtnLenMax+16), oDlg:nHeight-48 OWNERBUTTON SIZE nBtnLenMax, 32 ;
+            TEXT aParams[i] COLOR CLR_BLACK ON CLICK &( "{||nRes:="+Ltrim(Str(i-4))+",hwg_EndDialog()}" )
          ATail(oDlg:aControls):aStyle := ::aStyleBtn
       ENDIF
    NEXT
@@ -130,23 +133,23 @@ METHOD Message( cText, cTitle, oImage, ... ) CLASS HMessage
 
    RETURN nRes
 
-METHOD MsgInfo( cText, cTitle ) CLASS HMessage
+METHOD MsgInfo( cText, cTitle, nAlign ) CLASS HMessage
 
-   RETURN ::Message( cText, cTitle, ::oImgInfo, ::cOk )
+   RETURN ::Message( cText, cTitle, ::oImgInfo, nAlign, ::cOk )
 
-METHOD MsgStop( cText, cTitle ) CLASS HMessage
+METHOD MsgStop( cText, cTitle, nAlign ) CLASS HMessage
 
-   RETURN ::Message( cText, cTitle, ::oImgStop, ::cOk )
+   RETURN ::Message( cText, cTitle, ::oImgStop, nAlign, ::cOk )
 
-METHOD MsgYesNo( cText, cTitle ) CLASS HMessage
+METHOD MsgYesNo( cText, cTitle, nAlign ) CLASS HMessage
 
-   LOCAL n := ::Message( cText, cTitle, ::oImgQue, ::cYes, ::cNo )
+   LOCAL n := ::Message( cText, cTitle, ::oImgQue, nAlign, ::cYes, ::cNo )
 
    RETURN (n == 1)
 
-METHOD MsgYesNoCancel( cText, cTitle ) CLASS HMessage
+METHOD MsgYesNoCancel( cText, cTitle, nAlign ) CLASS HMessage
 
-   LOCAL n := ::Message( cText, cTitle, ::oImgQue, ::cYes, ::cNo, ::cCancel )
+   LOCAL n := ::Message( cText, cTitle, ::oImgQue, nAlign, ::cYes, ::cNo, ::cCancel )
 
    RETURN Iif( n==3, 0, n )
 

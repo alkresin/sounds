@@ -554,3 +554,9 @@ HB_FUNC( PA_SETEND )
    StreamData *data = (StreamData *) hb_parptr(1);
    data->bEnd = 1;
 }
+
+HB_FUNC( PA_GETPOSITION )
+{
+   StreamData *data = (StreamData *) hb_parptr(1);
+   hb_retni( data->position );
+}
