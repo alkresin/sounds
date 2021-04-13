@@ -8,26 +8,13 @@
 #endif
 #include "inkey.ch"
 
-#define CLR_WHITE    0xffffff
-#define CLR_BLACK    0x000000
-#define CLR_RED      0x0000ff
-#define CLR_BROWN_1  0x154780
-#define CLR_BROWN_2  0x6a9cd4
-#define CLR_BROWN_3  0xaad2ff
-#define CLR_BROWN_4  0x396eaa
-#define CLR_BROWN_5  0x9dc7f6
-#define CLR_LIGHTGRAY_1 0xdddddd
-#define CLR_LIGHTGRAY_2 0xaaaaaa
-#define CLR_DARKGRAY_1  0x333333
-#define CLR_DARKGRAY_2  0x666666
+#define CLR_WHITE   0xffffff
 #define CLR_TOPDARK 0x7b7680
 #define CLR_TOPMID  0x5b5760
-#define CLR_DLGBACK 0x154780
-#define CLR_DLGHEA  0x2F343F
 
 STATIC oBmpCheck
 
-FUNCTION FileMenu( x1, y1, nWidth, nHeight, aChoices, aFuncs )
+FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs )
 
    LOCAL oMainWindow := HWindow():GetMain()
    LOCAL oDlg1, oBrw, lCapture := .F., i, lMulti := .F., lbline := .F., nRes := 0
@@ -151,9 +138,9 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, aChoices, aFuncs )
       ENDIF
    ENDIF
    oBrw:lDispHead := .F.
-   oBrw:bcolorSel := oBrw:htbColor := CLR_TOPMID
-   oBrw:bColor := oBrw:sepColor := CLR_TOPDARK
-   oBrw:tcolorSel := oBrw:httColor := oBrw:tcolor := CLR_WHITE
+   oBrw:bcolorSel := oBrw:htbColor := Iif( clrsel==Nil, CLR_TOPMID, clrsel )
+   oBrw:bColor := oBrw:sepColor := Iif( clrb==Nil, CLR_TOPDARK, clrb )
+   oBrw:tcolorSel := oBrw:httColor := oBrw:tcolor := Iif( clrt==Nil, CLR_WHITE, clrb )
 
    oBrw:bEnter := bEnter
    oBrw:bKeyDown := bKeyDown

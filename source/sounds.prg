@@ -11,18 +11,18 @@
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0x000000
 #define CLR_RED      0x0000ff
-#define CLR_BROWN_1  0x154780
-#define CLR_BROWN_2  0x6a9cd4
-#define CLR_BROWN_3  0xaad2ff
-#define CLR_BROWN_4  0x396eaa
-#define CLR_BROWN_5  0x9dc7f6
 #define CLR_LIGHTGRAY_1 0xdddddd
 #define CLR_LIGHTGRAY_2 0xaaaaaa
 #define CLR_DARKGRAY_1  0x333333
 #define CLR_DARKGRAY_2  0x666666
+
+#define CLR_BROWN_1  0x154780
+#define CLR_BROWN_2  0x396eaa
+#define CLR_BROWN_3  0x6a9cd4
+#define CLR_BROWN_4  0x9dc7f6
+#define CLR_BROWN_5  0xaad2ff
 #define CLR_TOPDARK 0x7b7680
 #define CLR_TOPMID  0x5b5760
-//#define CLR_DLGBACK 0x3C3940
 #define CLR_DLGBACK 0x154780
 #define CLR_DLGHEA  0x2F343F
 
@@ -59,6 +59,7 @@ STATIC oStyleDarkNormal, oStyleDarkPressed, oStyleDarkOver
 STATIC oStyleWKNormal, oStyleWKPressed, oStyleWKOver, oStyleDisabled
 STATIC oStyleBKNormal, oStyleBKPressed, oStyleBKOver
 
+STATIC pClr
 STATIC oPenGrid, oPenRed, oPen2, oBrushCursor, oBrushRange
 STATIC oclef1, oclef2, oBemol, oDiez, oBekar
 STATIC oNote1, oNote2, oNote4, oNote8, oNote16, oNote32, oNote2d, oNote4d, oNote8d, oNote16d, oNote32d
@@ -114,6 +115,9 @@ FUNCTION Main
       hb_cdpSelect( "UTF8" )
    ENDIF
 
+   pClr := hb_Hash( "topdark", CLR_TOPDARK, "topmid", CLR_TOPMID, ;
+      "dlgback", CLR_DLGBACK, "dlghea", CLR_DLGHEA, ;
+      "clr1", CLR_BROWN_1, "clr2", CLR_BROWN_2, "clr3", CLR_BROWN_3, "clr4", CLR_BROWN_4, "clr5", CLR_BROWN_5 )
    oScore := Score():New()
    oMsg := HMessage():New()
    aLangs := { cLanguage }
@@ -132,10 +136,10 @@ FUNCTION Main
    nWndWidth := 120 + (aKeySiz[nZoom,1]+2)*14
 #ifdef __PLATFORM__UNIX
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR CLR_BROWN_3 STYLE WND_NOTITLE
+      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE
 #else
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR CLR_BROWN_3 STYLE WND_NOTITLE + WND_NOSIZEBOX
+      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE + WND_NOSIZEBOX
 #endif
    ADD HEADER PANEL oPaneHea HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR 0x2F343F ;
       FONT oFontHea TEXT aMsgs[1] COORS 36 BTN_CLOSE BTN_MINIMIZE
@@ -166,7 +170,7 @@ FUNCTION Main
 
    @ nWndWidth-(64+nZoom*8)*2, 0 OWNERBUTTON OF oPaneTop SIZE (64+nZoom*8), TOPPANE_HEIGHT ;
       HSTYLES oStyleDarkNormal, oStyleDarkPressed, oStyleDarkOver TEXT aMsgs[5] COLOR CLR_WHITE ;
-      FONT oFontMenu ON CLICK {|| FileMenu( nWndWidth-(64+nZoom*8)*2,TOPPANE_HEIGHT*2,140,58,{aMsgs[5],aMsgs[87]},{{||Help()},{||About()}}) }
+      FONT oFontMenu ON CLICK {|| FileMenu( nWndWidth-(64+nZoom*8)*2,TOPPANE_HEIGHT*2,140,58,,,,{aMsgs[5],aMsgs[87]},{{||Help()},{||About()}}) }
 
    @ nWndWidth-(64+nZoom*8), 0 OWNERBUTTON OF oPaneTop SIZE (64+nZoom*8), TOPPANE_HEIGHT ;
       HSTYLES oStyleDarkNormal, oStyleDarkPressed, oStyleDarkOver TEXT aMsgs[6] COLOR CLR_WHITE ;
@@ -191,9 +195,9 @@ FUNCTION Main
 
 STATIC FUNCTION SetStyles()
 
-   oStyleDarkNormal := HStyle():New( { CLR_TOPDARK, CLR_TOPMID }, 1 )
-   oStyleDarkPressed := HStyle():New( { CLR_TOPDARK }, 1,, 2, CLR_WHITE )
-   oStyleDarkOver := HStyle():New( { CLR_TOPDARK }, 1 )
+   oStyleDarkNormal := HStyle():New( { pClr["topdark"], pClr["topmid"] }, 1 )
+   oStyleDarkPressed := HStyle():New( { pClr["topdark"] }, 1,, 2, CLR_WHITE )
+   oStyleDarkOver := HStyle():New( { pClr["topdark"] }, 1 )
 
    oStyleWKNormal := HStyle():New( { CLR_WHITE, CLR_LIGHTGRAY_1 }, 1,, 1 )
    oStyleWKPressed := HStyle():New( { CLR_LIGHTGRAY_1, CLR_LIGHTGRAY_2 }, 2,, 1 )
@@ -208,14 +212,14 @@ STATIC FUNCTION SetStyles()
    oStyleBKOver := HStyle():New( { CLR_BLACK, CLR_DARKGRAY_1 }, 1,, 2, 8421440 )
    aStyleB := { oStyleBKNormal, oStyleBKPressed, oStyleBKOver }
 
-   aStyleBtn := { HStyle():New( { CLR_BROWN_3, CLR_BROWN_2 }, 1 ), ;
-      HStyle():New( { CLR_BROWN_3, CLR_BROWN_2 }, 2 ) }
+   aStyleBtn := { HStyle():New( { pClr["clr5"], pClr["clr3"] }, 1 ), ;
+      HStyle():New( { pClr["clr5"], pClr["clr3"] }, 2 ) }
 
    oPenGrid := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    oPenRed := HPen():Add( PS_SOLID, 2, CLR_RED )
    oPen2 := HPen():Add( PS_SOLID, 2, CLR_BLACK )
-   oBrushCursor := HBrush():Add( CLR_BROWN_3 )
-   oBrushRange := HBrush():Add( CLR_BROWN_5 )
+   oBrushCursor := HBrush():Add( pClr["clr5"] )
+   oBrushRange := HBrush():Add( pClr["clr4"] )
 
    oClef1 := HBitmap():AddResource( "skrip2_80" )
    oClef2 := HBitmap():AddResource( "bas2_36" )
@@ -260,7 +264,7 @@ STATIC FUNCTION SetStyles()
    PREPARE FONT oFontBold NAME "Georgia" WIDTH 0 HEIGHT aFontsSiz[nZoom]+2 WEIGHT 700 CHARSET 4
    PREPARE FONT oFontMetre NAME "Times New Roman" WIDTH 0 HEIGHT -22 WEIGHT 700
 
-   oMsg:Set( oFontWnd, CLR_BROWN_3, CLR_DLGBACK, .T., oFontHea,,, aStyleBtn )
+   oMsg:Set( oFontWnd, pClr["clr5"], pClr["dlgback"], .T., oFontHea, CLR_WHITE, pClr["dlghea"], aStyleBtn )
    oMsg:cOk := aMsgs[11]
    oMsg:cYes := aMsgs[89]
    oMsg:cNo := aMsgs[90]
@@ -527,7 +531,7 @@ STATIC FUNCTION SeleMode()
       aMenu[nTestMode+1,1] := .T.
    ENDIF
 
-   FileMenu( 4,TOPPANE_HEIGHT*2,140,176, aMenu, aFuncs )
+   FileMenu( 4,TOPPANE_HEIGHT*2,140,176,,,, aMenu, aFuncs )
 
    RETURN NIL
 
@@ -539,7 +543,7 @@ STATIC FUNCTION SetMode( nMode )
       SetVP( .T. )
       SetPaneBtn()
       oPaneTop:aControls[2]:title := aMsgs[49]
-      oPaneTop:aControls[2]:bClick := {|| FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,170,144,{aMsgs[50]+",Ctrl-N",aMsgs[51]+",Ctrl-O",aMsgs[52]+",Ctrl-S",aMsgs[75],aMsgs[77]},{{||NewNotes()},{||LoadNotes()},{||SaveNotes()},{||ImportNotes()},{||ExportNotes()}}) }
+      oPaneTop:aControls[2]:bClick := {|| FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,170,144,,,,{aMsgs[50]+",Ctrl-N",aMsgs[51]+",Ctrl-O",aMsgs[52]+",Ctrl-S",aMsgs[75],aMsgs[77]},{{||NewNotes()},{||LoadNotes()},{||SaveNotes()},{||ImportNotes()},{||ExportNotes()}}) }
       oPaneTop:aControls[3]:title := aMsgs[66]
       oPaneTop:aControls[3]:bClick := {|| menu_View() }
    ELSE
@@ -570,7 +574,7 @@ STATIC FUNCTION menu_View()
       AAdd( aMenu, { .F., aPlugMenu[i,1] } )
    NEXT
 
-   i := FileMenu( (64+nZoom*8)*2, TOPPANE_HEIGHT*2, 170, 58+Len(aPlugMenu)*28, aMenu )
+   i := FileMenu( (64+nZoom*8)*2, TOPPANE_HEIGHT*2, 170, 58+Len(aPlugMenu)*28,,,, aMenu )
    IF i == 1
       NoteEditor()
    ELSEIF i == 2
@@ -592,7 +596,7 @@ STATIC FUNCTION SeleLevel()
          AAdd( aMenu, { i==nTestLevel, aMsgs[62]+" "+Ltrim(Str(i)) } )
          AAdd( aFuncs, &( "{|| SetLevel(" + Ltrim(Str(i)) + ")}" ) )
       NEXT
-      FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,140,29*aLevels[nTestMode], aMenu, aFuncs )
+      FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,140,29*aLevels[nTestMode],,,, aMenu, aFuncs )
    ENDIF
 
    RETURN NIL
@@ -628,7 +632,7 @@ STATIC FUNCTION SetVP( lShow )
       FOR i := 1 TO Len( aOggPaths )
          aMenu[i] := aOggPaths[i,1]
       NEXT
-      IF ( i := FileMenu( oPaneBtn:nLeft+oPaneBtn:oSayInstr:nLeft,oPaneBtn:nTop-h,120,h, aMenu ) ) > 0 ;
+      IF ( i := FileMenu( oPaneBtn:nLeft+oPaneBtn:oSayInstr:nLeft,oPaneBtn:nTop-h,120,h,,,, aMenu ) ) > 0 ;
          .AND. nCurrInstr != i
          nCurrInstr := i
          oPaneBtn:oSayInstr:SetText( aOggPaths[i,1] )
@@ -643,7 +647,7 @@ STATIC FUNCTION SetVP( lShow )
       IF Empty( oPaneVP )
 
          @ 10, TOPPANE_HEIGHT*2 + 8 PANEL oPaneNote OF oMainWindow SIZE nWndWidth - 20, 164 ;
-            HSTYLE HStyle():New( { CLR_BROWN_1 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr1"] }, 1 ) ON SIZE {|| .T. }
          oPaneNote:oFont := oFontWnd
 
          @ 4, 4 PANEL oPaneScore OF oPaneNote SIZE oPaneNote:nWidth-8, 156 STYLE SS_OWNERDRAW BACKCOLOR CLR_WHITE ON SIZE {||.t.}
@@ -652,10 +656,10 @@ STATIC FUNCTION SetVP( lShow )
          NewNotes()
 
          @ (oMainWindow:nWidth-140)/2 , oPaneNote:nTop+oPaneNote:nHeight SAY oSayNote1 CAPTION "" ;
-            OF oMainWindow SIZE 140, 22 FONT oFontMenu STYLE SS_CENTER BACKCOLOR CLR_BROWN_3
+            OF oMainWindow SIZE 140, 22 FONT oFontMenu STYLE SS_CENTER BACKCOLOR pClr["clr5"]
 
          @ 20, oPaneNote:nTop+oPaneNote:nHeight+22 PANEL oPaneVP SIZE nWndWidth - 40, 152 OF oMainWindow ;
-            HSTYLE HStyle():New( { CLR_BROWN_1 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr1"] }, 1 ) ON SIZE {|| .T. }
          oPaneVP:oFont := oFontWnd
          AddPianoKeys( 40, 22, 50, 0 )
          AddPianoKeys( 40 + (aKeySiz[nZoom,1]+2)*7, 22, 40, 12 )
@@ -663,10 +667,10 @@ STATIC FUNCTION SetVP( lShow )
          SetPianoKeys()
 
          @ 10, oMainWindow:nHeight-36 PANEL oPaneBtn SIZE nWndWidth - 20, 28 OF oMainWindow ;
-            HSTYLE HStyle():New( { CLR_BROWN_1 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr1"] }, 1 ) ON SIZE {|| .T. }
          oPaneBtn:oFont := oFontWnd
 
-         @ oPaneBtn:nWidth/2-24, 3 SAY oSayOct1 CAPTION "" OF oPaneBtn SIZE 48, 22 STYLE SS_CENTER BACKCOLOR CLR_BROWN_1 COLOR CLR_BROWN_3
+         @ oPaneBtn:nWidth/2-24, 3 SAY oSayOct1 CAPTION "" OF oPaneBtn SIZE 48, 22 STYLE SS_CENTER BACKCOLOR pClr["clr1"] COLOR pClr["clr5"]
          @ oPaneBtn:nWidth/2-54, 2 OWNERBUTTON oBtn1 OF oPaneBtn SIZE 30, 24 TEXT "" ON CLICK {|| ChangeOctave( - 1 ) } ;
             TOOLTIP aMsgs[17]
          oBtn1:aStyle := aStyleBtn
@@ -679,7 +683,7 @@ STATIC FUNCTION SetVP( lShow )
          @ oPaneBtn:nWidth/2+60, 2 SAY "" OF oPaneBtn SIZE 2, oPaneBtn:nHeight-4
 
          @ 30, 2 BITMAP "volume" FROM RESOURCE OF oPaneBtn //TRANSPARENT COLOR CLR_WHITE
-         oTrack := HTrack():New( oPaneBtn,, 54, 0, 112, 28,,, CLR_WHITE, CLR_BROWN_1, 16 )
+         oTrack := HTrack():New( oPaneBtn,, 54, 0, 112, 28,,, CLR_WHITE, pClr["clr1"], 16 )
          hwg_SetCtrlName( oTrack, "OTRACK" )
          hwg_Addtooltip( oTrack:handle, aMsgs[70] )
          oTrack:cargo := 1
@@ -688,7 +692,7 @@ STATIC FUNCTION SetVP( lShow )
          oTrack:Value := 0.5
 
          @ oPaneBtn:nWidth/2+100, 2 SAY oSayInstr CAPTION aOggPaths[nCurrInstr,1] OF oPaneBtn SIZE 120, 24 ;
-            FONT oFontMenu STYLE SS_CENTER BACKCOLOR CLR_BROWN_3
+            FONT oFontMenu STYLE SS_CENTER BACKCOLOR pClr["clr5"]
          @ oPaneBtn:nWidth/2+220, 2 OWNERBUTTON oBtnI OF oPaneBtn SIZE 20, 24 TEXT ".." ON CLICK bInstr
          oBtnI:aStyle := aStyleBtn
 
@@ -831,10 +835,10 @@ STATIC FUNCTION SetTest( lShow )
    IF lShow
       IF Empty( oPaneTst1 )
          @ 10, TOPPANE_HEIGHT*2 + 8 PANEL oPaneTst1 OF oMainWindow SIZE nWndWidth - 20, 114 ;
-            HSTYLE HStyle():New( { CLR_BROWN_4 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr2"] }, 1 ) ON SIZE {|| .T. }
          oPaneTst1:oFont := oFontWnd
 
-         @ 20, 4 SAY oSay1 CAPTION "" OF oPaneTst1 SIZE nWndWidth - 60, 20+nZoom*2 FONT oFontBold COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+         @ 20, 4 SAY oSay1 CAPTION "" OF oPaneTst1 SIZE nWndWidth - 60, 20+nZoom*2 FONT oFontBold COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
          @ 20, 64 SAY "" of oPaneTst1 SIZE oPaneTst1:nWidth-40, 2
 
@@ -850,10 +854,10 @@ STATIC FUNCTION SetTest( lShow )
 
          // ---- oPaneTst2 Begin ----
          @ 10, oPaneTst1:nTop+oPaneTst1:nHeight+2 PANEL oPaneTst2 OF oMainWindow SIZE nWndWidth - 20, 80 ;
-            HSTYLE HStyle():New( { CLR_BROWN_4 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr2"] }, 1 ) ON SIZE {|| .T. }
          oPaneTst2:oFont := oFontWnd
 
-         @ 20, 4 SAY oSay2 CAPTION "" OF oPaneTst2 SIZE oPaneTst2:nWidth - 40, 24 FONT oFontWnd COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+         @ 20, 4 SAY oSay2 CAPTION "" OF oPaneTst2 SIZE oPaneTst2:nWidth - 40, 24 FONT oFontWnd COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
          @ (oPaneTst2:nWidth-380)/2, 34 OWNERBUTTON oBtnResu1 OF oPaneTst2 SIZE 180, 36 TEXT "" ;
             ON CLICK {|| nAns1 := 1, TestVal() }
@@ -865,7 +869,7 @@ STATIC FUNCTION SetTest( lShow )
 
          // ---- oPaneTst3 Begin ----
          @ 10, oPaneTst1:nTop+oPaneTst1:nHeight+2 PANEL oPaneTst3 OF oMainWindow SIZE nWndWidth - 20, 80 ;
-            HSTYLE HStyle():New( { CLR_BROWN_4 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr2"] }, 1 ) ON SIZE {|| .T. }
          oPaneTst3:oFont := oFontWnd
 
          nw := Int( (oPaneTst1:nWidth - 40) / 3 )
@@ -883,10 +887,10 @@ STATIC FUNCTION SetTest( lShow )
 
          // ---- oPaneTst5 Begin ----
          @ 10, oPaneTst1:nTop+oPaneTst1:nHeight+2 PANEL oPaneTst5 OF oMainWindow SIZE nWndWidth - 20, 80 ;
-            HSTYLE HStyle():New( { CLR_BROWN_4 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr2"] }, 1 ) ON SIZE {|| .T. }
          oPaneTst5:oFont := oFontWnd
 
-         @ 20, 10 SAY aMsgs[23] OF oPaneTst5 SIZE 110, 20+nZoom*2 FONT oFontWnd COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+         @ 20, 10 SAY aMsgs[23] OF oPaneTst5 SIZE 110, 20+nZoom*2 FONT oFontWnd COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
          @ 130,10 GET COMBOBOX oGet4 VAR nIntDir ITEMS aIntDir OF oPaneTst5 SIZE 120, 28
          @ 260,10 GET COMBOBOX oGet5 VAR nInterval ITEMS aIntervals OF oPaneTst5 SIZE 180, 28
 
@@ -898,14 +902,14 @@ STATIC FUNCTION SetTest( lShow )
 
          // ---- oPaneTstRes Begin ----
          @ 10, oPaneTst2:nTop+oPaneTst2:nHeight+2 PANEL oPaneTstRes OF oMainWindow SIZE nWndWidth - 20, 140 ;
-            HSTYLE HStyle():New( { CLR_BROWN_4 }, 1 ) ON SIZE {|| .T. }
+            HSTYLE HStyle():New( { pClr["clr2"] }, 1 ) ON SIZE {|| .T. }
          oPaneTstRes:oFont := oFontWnd
 
-         @ 20, 10 SAY oTestVal1 CAPTION "" OF oPaneTstRes SIZE 280, 20+nZoom*2 BACKCOLOR CLR_BROWN_3
-         @ 20, 36 SAY oTestVal2 CAPTION "" OF oPaneTstRes SIZE 220, 20+nZoom*2 BACKCOLOR CLR_BROWN_3
-         @ 244, 36 BITMAP oTestBmp2 SHOW "dummy" FROM RESOURCE OF oPaneTstRes TRANSPARENT COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
-         @ 20, 62 SAY oTestVal3 CAPTION "" OF oPaneTstRes SIZE 220, 20+nZoom*2 BACKCOLOR CLR_BROWN_3
-         @ 244, 62 BITMAP oTestBmp3 SHOW "dummy" FROM RESOURCE OF oPaneTstRes TRANSPARENT COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+         @ 20, 10 SAY oTestVal1 CAPTION "" OF oPaneTstRes SIZE 280, 20+nZoom*2 BACKCOLOR pClr["clr5"]
+         @ 20, 36 SAY oTestVal2 CAPTION "" OF oPaneTstRes SIZE 220, 20+nZoom*2 BACKCOLOR pClr["clr5"]
+         @ 244, 36 BITMAP oTestBmp2 SHOW "dummy" FROM RESOURCE OF oPaneTstRes TRANSPARENT COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
+         @ 20, 62 SAY oTestVal3 CAPTION "" OF oPaneTstRes SIZE 220, 20+nZoom*2 BACKCOLOR pClr["clr5"]
+         @ 244, 62 BITMAP oTestBmp3 SHOW "dummy" FROM RESOURCE OF oPaneTstRes TRANSPARENT COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
          @ oPaneTstRes:nWidth-200, 10 SAY oTestNote CAPTION "" OF oPaneTstRes SIZE 180, 122 STYLE SS_OWNERDRAW BACKCOLOR CLR_WHITE
          oTestNote:bPaint := {|o,lpdis| oTest_Paint( o,lpdis )}
@@ -913,7 +917,7 @@ STATIC FUNCTION SetTest( lShow )
          oTestNote:cargo:aMetre[1] := oTestNote:cargo:aMetre[2] := 0
          oTestNote:cargo:SetScrKol( oTestNote )
 
-         @ 20, 104 SAY oTestTotal CAPTION "" OF oPaneTstRes SIZE 200, 22+nZoom*2 FONT oFontBold BACKCOLOR CLR_BROWN_2
+         @ 20, 104 SAY oTestTotal CAPTION "" OF oPaneTstRes SIZE 200, 22+nZoom*2 FONT oFontBold BACKCOLOR pClr["clr3"]
          // ---- oPaneTstRes End ----
 
       ENDIF
@@ -1454,7 +1458,7 @@ FUNCTION PlayKey( n )
          ELSE
             IF Valtype( :aNotes[:nCurr,1] ) == "A"
                AAdd( :aNotes[:nCurr,1], n )
-            ELSEIF ( i := FileMenu( oPaneNote:nLeft+200,oPaneNote:nTop+16,120,90, aMenu ) ) == 2
+            ELSEIF ( i := FileMenu( oPaneNote:nLeft+200,oPaneNote:nTop+16,120,90,,,, aMenu ) ) == 2
                   :aNotes[:nCurr,1] := { :aNotes[:nCurr,1], n }
             ELSEIF i == 1
                :aNotes[:nCurr,1] := n
@@ -1913,7 +1917,7 @@ STATIC FUNCTION oScore_Other( o, msg, wp, lp)
       ENDIF
       xm += o:nLeft + o:oParent:nLeft
       ym += o:nTop + o:oParent:nTop
-      IF ( n := FileMenu( xm, ym, 180, 30*Len(aMenu), aMenu ) ) > 0
+      IF ( n := FileMenu( xm, ym, 180, 30*Len(aMenu),,,, aMenu ) ) > 0
          IF n == 1
             Player()
             PlayNotes( .F. )
@@ -2412,7 +2416,7 @@ STATIC FUNCTION midi_SeleChn( arr, cFile, oMidi )
    }
 
    INIT DIALOG oDlg1 TITLE "" AT 100, 100 SIZE 180, nHeight ;
-      BACKCOLOR CLR_TOPDARK STYLE WND_NOTITLE + WND_NOSIZEBOX
+      BACKCOLOR pClr["topdark"] STYLE WND_NOTITLE + WND_NOSIZEBOX
    oDlg1:oParent := oMainWindow
 
    @ 0, 0 BROWSE oBrw ARRAY OF oDlg1 SIZE 180, nHeight-50 FONT oFontWnd NO VSCROLL
@@ -2421,8 +2425,8 @@ STATIC FUNCTION midi_SeleChn( arr, cFile, oMidi )
    oBrw:AddColumn( HColumn():New( ,{ ||oBrw:aArray[oBrw:nCurrent,1] },"C",20 ) )
 
    oBrw:lDispHead := .F.
-   oBrw:bcolorSel := oBrw:htbColor := CLR_TOPMID
-   oBrw:bColor := oBrw:sepColor := CLR_TOPDARK
+   oBrw:bcolorSel := oBrw:htbColor := pClr["topmid"]
+   oBrw:bColor := oBrw:sepColor := pClr["topdark"]
    oBrw:tcolorSel := oBrw:httColor := oBrw:tcolor := CLR_WHITE
 
    oBrw:bEnter := bEnter
@@ -2451,34 +2455,36 @@ STATIC FUNCTION ExportNotes()
 
    LOCAL oDlg1, oPanel, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5, l1 := .F., l2 := .F., l3 := .F., l4 := .F., l5 := .F.
    LOCAL cFile, oExp, i, arr := oScore:aNotes, aMidiOpt
-   STATIC aMidiInstr := { {"Acoustic Grand Piano",0}, {"Church Organ",19}, {"Accordion",21}, ;
-      {"Acoustic Guitar (nylon)",24}, {"Violin",40}, {"Flute",73}, {"Recorder",74} }
+   STATIC aMidiInstr := { {"Acoustic Grand Piano",0}, {"Rock Organ",18}, {"Church Organ",19}, {"Accordion",21}, ;
+      {"Acoustic Guitar (nylon)",24}, {"Acoustic Guitar (steel)",25}, {"Electric Guitar (jazz)",26}, ;
+      {"Electric Guitar (clean)",27}, {"Violin",40}, {"Soprano sax",64}, {"Alto sax",65}, ;
+      {"Tenor sax",66}, {"Baritone sax",67}, {"Clarinet",71}, {"Flute",73}, {"Recorder",74}, {"Pan flute",75} }
 
    IF Empty( arr )
       RETURN Nil
    ENDIF
 
    INIT DIALOG oDlg1 TITLE "" AT 100, 100 SIZE 300, 240 ;
-      BACKCOLOR CLR_TOPDARK STYLE WND_NOTITLE + WND_NOSIZEBOX
+      BACKCOLOR pClr["topdark"] STYLE WND_NOTITLE + WND_NOSIZEBOX
    oDlg1:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[77] COORS 20 BTN_CLOSE
 
    @ 20, TOPPANE_HEIGHT+20 GET CHECKBOX oCheck1 VAR l1 CAPTION "Midi" SIZE oDlg1:nWidth-40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
    @ 20, TOPPANE_HEIGHT+50 GET CHECKBOX oCheck2 VAR l2 CAPTION "MusicXML uncompressed" SIZE oDlg1:nWidth-40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
    @ 20, TOPPANE_HEIGHT+80 GET CHECKBOX oCheck3 VAR l3 CAPTION "MusicXML (mxl)" SIZE oDlg1:nWidth-40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
    @ 20, TOPPANE_HEIGHT+110 GET CHECKBOX oCheck4 VAR l4 CAPTION "MuseScore uncompressed" SIZE oDlg1:nWidth-40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
    @ 20, TOPPANE_HEIGHT+140 GET CHECKBOX oCheck5 VAR l5 CAPTION "MuseScore (mscz)" SIZE oDlg1:nWidth-40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
    @ 20, oDlg1:nHeight-40 OWNERBUTTON SIZE 70, 30 TEXT aMsgs[13] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -2591,13 +2597,13 @@ STATIC FUNCTION Player()
       RETURN Nil
    ENDIF
 
-   INIT DIALOG oDlgPlay TITLE "Player" BACKCOLOR CLR_BROWN_4 ;
+   INIT DIALOG oDlgPlay TITLE "Player" BACKCOLOR pClr["clr2"] ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 360, 340 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| oDlgPlay := Nil}
 
    oDlgPlay:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[73] COORS 20 BTN_CLOSE
 
    @ 20, TOPPANE_HEIGHT+20 OWNERBUTTON SIZE 28, 28 ;
@@ -2611,7 +2617,7 @@ STATIC FUNCTION Player()
    ATail(oDlgPlay:aControls):aStyle := aStyleBtn
 
    @ 110, TOPPANE_HEIGHT+20 BITMAP "volume" FROM RESOURCE
-   oTrack := HTrack():New( oDlgPlay,, 140, TOPPANE_HEIGHT+20, 150, 28,,, CLR_WHITE, CLR_BROWN_1, 16 )
+   oTrack := HTrack():New( oDlgPlay,, 140, TOPPANE_HEIGHT+20, 150, 28,,, CLR_WHITE, pClr["clr1"], 16 )
    hwg_SetCtrlName( oTrack, "OTRACK" )
    hwg_Addtooltip( oTrack:handle, aMsgs[70] )
    oTrack:cargo := 2
@@ -2620,7 +2626,7 @@ STATIC FUNCTION Player()
    oTrack:Value := oPaneBtn:oTrack:Value
 
    @ 300, TOPPANE_HEIGHT+20 CHECKBOX oCheck1 CAPTION " " SIZE 40, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4 TOOLTIP aMsgs[68]
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"] TOOLTIP aMsgs[68]
 
    @ 20, TOPPANE_HEIGHT+50 OWNERBUTTON SIZE 28, 28 ;
       BITMAP "play_14" FROM RESOURCE TRANSPARENT COLOR CLR_WHITE ;
@@ -2629,7 +2635,7 @@ STATIC FUNCTION Player()
 
    // BPM
    @ 20, TOPPANE_HEIGHT+110 SAY "bpm:" SIZE 44, 24 COLOR CLR_WHITE TRANSPARENT
-   oTrackBPM := HTrack():New( oDlgPlay,, 70, TOPPANE_HEIGHT+110, 200, 28,,, CLR_WHITE, CLR_BROWN_1, 16 )
+   oTrackBPM := HTrack():New( oDlgPlay,, 70, TOPPANE_HEIGHT+110, 200, 28,,, CLR_WHITE, pClr["clr1"], 16 )
    hwg_SetCtrlName( oTrackBPM, "OTRACKBPM" )
    hwg_Addtooltip( oTrackBPM:handle, aMsgs[72] )
    oTrackBPM:tColor2 := CLR_LIGHTGRAY_1
@@ -2650,7 +2656,7 @@ STATIC FUNCTION Player()
    ATail(oDlgPlay:aControls):aStyle := aStyleBtn
 
    @ 110, TOPPANE_HEIGHT+150 BITMAP "volume" FROM RESOURCE
-   oTrack2 := HTrack():New( oDlgPlay,, 140, TOPPANE_HEIGHT+150, 150, 28,,, CLR_WHITE, CLR_BROWN_1, 16 )
+   oTrack2 := HTrack():New( oDlgPlay,, 140, TOPPANE_HEIGHT+150, 150, 28,,, CLR_WHITE, pClr["clr1"], 16 )
    hwg_Addtooltip( oTrack2:handle, aMsgs[71] )
    oTrack2:cargo := 2
    oTrack2:tColor2 := CLR_LIGHTGRAY_1
@@ -2659,7 +2665,7 @@ STATIC FUNCTION Player()
 
    @ 20, 280 SAY "" SIZE oDlgPlay:nWidth-40, 2
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 130, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -2732,13 +2738,13 @@ STATIC FUNCTION NoteEditor()
       RETURN Nil
    ENDIF
 
-   INIT DIALOG oDlgEdi TITLE "Notes Editor" BACKCOLOR CLR_BROWN_4 ;
+   INIT DIALOG oDlgEdi TITLE "Notes Editor" BACKCOLOR pClr["clr2"] ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 360, 340 FONT oFontWnd ;
       STYLE WND_NOTITLE + WND_NOSIZEBOX ON EXIT {|| oDlgEdi:= Nil}
 
    oDlgEdi:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[54] COORS 20 BTN_CLOSE
 
    @ oDlgEdi:nWidth/2-40, 40 OWNERBUTTON SIZE 30, 28 TEXT "<" ON CLICK {|| SetNotesCursor(VK_LEFT) } ;
@@ -2751,27 +2757,27 @@ STATIC FUNCTION NoteEditor()
 
    @ 20, 80 SAY aMsgs[55] SIZE 140, 22 COLOR CLR_WHITE TRANSPARENT
    RADIOGROUP
-   @ 24,104 RADIOBUTTON "1" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK ON CLICK {||SetDuration(1)}
+   @ 24,104 RADIOBUTTON "1" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(1)}
    ATail(oDlgEdi:aControls):cargo := 1
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 84,104 RADIOBUTTON "1/2" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK ON CLICK {||SetDuration(2)}
+   @ 84,104 RADIOBUTTON "1/2" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(2)}
    ATail(oDlgEdi:aControls):cargo := 2
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 144,104 RADIOBUTTON "1/4" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK ON CLICK {||SetDuration(3)}
+   @ 144,104 RADIOBUTTON "1/4" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(3)}
    ATail(oDlgEdi:aControls):cargo := 3
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 204,104 RADIOBUTTON "1/8" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK ON CLICK {||SetDuration(4)}
+   @ 204,104 RADIOBUTTON "1/8" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(4)}
    ATail(oDlgEdi:aControls):cargo := 4
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 264,104 RADIOBUTTON "1/16" SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK ON CLICK {||SetDuration(5)}
+   @ 264,104 RADIOBUTTON "1/16" SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(5)}
    ATail(oDlgEdi:aControls):cargo := 5
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
@@ -2779,7 +2785,7 @@ STATIC FUNCTION NoteEditor()
    END RADIOGROUP SELECTED 1
 
    @ 30, 130 CHECKBOX oCheck1 CAPTION "  x 1.5" SIZE 100, 24 ;
-      COLOR CLR_WHITE BACKCOLOR CLR_BROWN_4 ON CLICK {||SetDuration(oCheck1:Value)}
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"] ON CLICK {||SetDuration(oCheck1:Value)}
    ATail(oDlgEdi:aControls):cargo := 1.5
 
    @ 20, 170 OWNERBUTTON SIZE 30, 28 ;
@@ -2808,7 +2814,7 @@ STATIC FUNCTION NoteEditor()
       ON CLICK {||Transpo()} TOOLTIP aMsgs[78]
    ATail(oDlgEdi:aControls):aStyle := aStyleBtn
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 130, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -2904,27 +2910,27 @@ STATIC FUNCTION Transpo()
 
    INIT DIALOG oDlg TITLE "Transpo" ;
       AT 100, 100 SIZE 340, 290 ;
-      FONT oFontWnd BACKCOLOR CLR_DLGBACK STYLE WND_NOTITLE + WND_NOSIZEBOX
+      FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE + WND_NOSIZEBOX
 
    oDlg:oParent := oDlgEdi
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[78] COORS 20 BTN_CLOSE
 
    GET RADIOGROUP nz
-   @ 80,60 RADIOBUTTON aMsgs[79] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 80,60 RADIOBUTTON aMsgs[79] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 200,60 RADIOBUTTON aMsgs[80] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 200,60 RADIOBUTTON aMsgs[80] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
    END RADIOGROUP
 
-   @ 120, 100 GET COMBOBOX oGet1 VAR n ITEMS aCombo SIZE 100, 28 BACKCOLOR CLR_BROWN_3
+   @ 120, 100 GET COMBOBOX oGet1 VAR n ITEMS aCombo SIZE 100, 28 BACKCOLOR pClr["clr5"]
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 50, 180 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[81] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -3092,33 +3098,33 @@ STATIC FUNCTION Options()
 
    INIT DIALOG oDlg TITLE "Options" ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 280 ;
-      FONT oFontWnd BACKCOLOR CLR_DLGBACK STYLE WND_NOTITLE + WND_NOSIZEBOX
+      FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE + WND_NOSIZEBOX
 
    oDlg:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[4] COORS 20 BTN_CLOSE
 
    @ 20, 50 SAY aMsgs[10] SIZE 160, 22 COLOR CLR_WHITE TRANSPARENT
-   @ 180, 50 GET COMBOBOX oGet1 VAR nLang ITEMS aLangs SIZE 140, 28 BACKCOLOR CLR_BROWN_3
+   @ 180, 50 GET COMBOBOX oGet1 VAR nLang ITEMS aLangs SIZE 140, 28 BACKCOLOR pClr["clr5"]
 
    @ 20, 90 SAY aMsgs[12] SIZE 100, 22 COLOR CLR_WHITE TRANSPARENT
    GET RADIOGROUP nz
-   @ 140,90 RADIOBUTTON "1" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 140,90 RADIOBUTTON "1" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 200,90 RADIOBUTTON "2" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 200,90 RADIOBUTTON "2" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 260,90 RADIOBUTTON "3" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 260,90 RADIOBUTTON "3" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
    END RADIOGROUP
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 50, 240 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[13] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -3154,30 +3160,30 @@ STATIC FUNCTION TestAnalyse()
    LOCAL nz1 := 1, nz2 := 1, nRecs := 10
 
    INIT DIALOG oDlg TITLE "111" ;
-      AT 200, 80 SIZE 400, 340 FONT oFontWnd BACKCOLOR CLR_DLGBACK STYLE WND_NOTITLE
+      AT 200, 80 SIZE 400, 340 FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE
    oDlg:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[46] COORS 20 BTN_CLOSE BTN_MAXIMIZE BTN_MINIMIZE
 
    GET RADIOGROUP nz1
-   @ 30,50 RADIOBUTTON "Current session" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 30,50 RADIOBUTTON "Current session" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 30,74 RADIOBUTTON "By days" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 30,74 RADIOBUTTON "By days" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 30,98 RADIOBUTTON "By weeks" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 30,98 RADIOBUTTON "By weeks" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 30,122 RADIOBUTTON "By months" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 30,122 RADIOBUTTON "By months" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 30,146 RADIOBUTTON "All" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 30,146 RADIOBUTTON "All" SIZE 180, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
@@ -3186,11 +3192,11 @@ STATIC FUNCTION TestAnalyse()
    @ 20, 176 SAY "" SIZE oDlg:nWidth-40, 2
 
    GET RADIOGROUP nz2
-   @ 50,188 RADIOBUTTON "Current test" SIZE 240, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 50,188 RADIOBUTTON "Current test" SIZE 240, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
-   @ 50,212 RADIOBUTTON "Total" SIZE 240, 22 COLOR CLR_WHITE BACKCOLOR CLR_DLGBACK
+   @ 50,212 RADIOBUTTON "Total" SIZE 240, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
 #ifdef __PLATFORM__UNIX
    hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
 #endif
@@ -3201,7 +3207,7 @@ STATIC FUNCTION TestAnalyse()
 
    @ 20, 268 SAY "" SIZE oDlg:nWidth-40, 2
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 50, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[47] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
@@ -3271,10 +3277,10 @@ STATIC FUNCTION ShowReport( n1, n2, nRecs )
    //hb_Memowrit( "aa.hwge", cText )
 
    INIT DIALOG oDlg TITLE "111" ;
-      AT 20, 20 SIZE 600, 400 FONT oFontWnd BACKCOLOR CLR_DLGBACK STYLE WND_NOTITLE
+      AT 20, 20 SIZE 600, 400 FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE
    //oDlg:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[48] COORS 20 BTN_CLOSE BTN_MAXIMIZE BTN_MINIMIZE
 
    @ 0, 32 PANEL oPanelT SIZE 600, 32 HSTYLE oStyleDarkNormal ;
@@ -3315,7 +3321,7 @@ STATIC FUNCTION ShowReport( n1, n2, nRecs )
 
    oEdit:SetText( cText, "UTF8","UTF8" )
 
-   oPanelH:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanelH:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    ACTIVATE DIALOG oDlg
 
@@ -3422,10 +3428,10 @@ STATIC FUNCTION Help()
    LOCAL cText
 
    INIT DIALOG oDlg TITLE "112" ;
-      AT 20, 20 SIZE 640, 440 FONT oFontWnd BACKCOLOR CLR_DLGBACK STYLE WND_NOTITLE
+      AT 20, 20 SIZE 640, 440 FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE
    oDlg:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[5] COORS 20 BTN_CLOSE BTN_MAXIMIZE BTN_MINIMIZE
 
    @ 0, 32 PANEL oPanelT SIZE 640, 32 HSTYLE oStyleDarkNormal ;
@@ -3463,7 +3469,7 @@ STATIC FUNCTION Help()
 
    oEdit:SetText( cText, "UTF8","UTF8" )
 
-   oPanelH:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanelH:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    ACTIVATE DIALOG oDlg ON ACTIVATE {|| oEdit:Open( hb_DirBase() + "sounds_"+cSuffix+".hwge" ) }
 
@@ -3502,28 +3508,28 @@ STATIC FUNCTION About()
 
    LOCAL oDlg, oPanel, cText, nPos
 
-   INIT DIALOG oDlg TITLE "About" BACKCOLOR CLR_DLGBACK ;
+   INIT DIALOG oDlg TITLE "About" BACKCOLOR pClr["dlgback"] ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 340 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX
 
    oDlg:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[87] COORS 20 BTN_CLOSE
 
-   @ 20, 40 SAY aMsgs[1] SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
-   @ 20, 64 SAY "Version " + APP_VERSION SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
-   @ 20, 100 SAY "Copyright 2021 Alexander S.Kresin" SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
+   @ 20, 40 SAY aMsgs[1] SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
+   @ 20, 64 SAY "Version " + APP_VERSION SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
+   @ 20, 100 SAY "Copyright 2021 Alexander S.Kresin" SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
    @ 20, 124 SAY "http://www.kresin.ru" LINK "http://www.kresin.ru" SIZE 360, 24 STYLE SS_CENTER
    @ 20, 160 LINE LENGTH 360
-   @ 20, 180 SAY hwg_version() SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
+   @ 20, 180 SAY hwg_version() SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
    cText := pa_getversiontext()
    IF ( nPos := At( ',', cText ) ) > 0
       cText := Left( cText, nPos - 1 )
    ENDIF
-   @ 20, 204 SAY cText SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
-   @ 20, 228 SAY sf_GetVersion() SIZE 360, 24 STYLE SS_CENTER COLOR CLR_BROWN_3 TRANSPARENT
+   @ 20, 204 SAY cText SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
+   @ 20, 228 SAY sf_GetVersion() SIZE 360, 24 STYLE SS_CENTER COLOR pClr["clr5"] TRANSPARENT
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 140, 300 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
