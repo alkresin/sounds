@@ -89,3 +89,4 @@
 089=Yes
 090=No
 091=Changes will take effect after restarting the program
+092=Arpeggio

@@ -18,20 +18,22 @@
 
 typedef struct
 {
-   SNDFILE  *sndFile;
-   SNDFILE  *sndFileNew;
-   SNDFILE  *sndFileRepl;
-   SNDFILE  *sndAcc1, *sndAcc2, *sndAcc3, *sndAcc4;
-   SF_INFO   sfInfo;
-   int       bPause;
-   int       bKeep;
-   int       bEnd;
-   int       position;
-   float     fVolume;
-   float     *output;
-   PaStream *stream;
+   SNDFILE    *sndFile;
+   SNDFILE    *sndFileNew;
+   SNDFILE    *sndFileRepl;
+   SNDFILE    *sndAcc1, *sndAcc2, *sndAcc3, *sndAcc4;
+   SF_INFO     sfInfo;
+   int         iAccoDelay;
+   int         bPause;
+   int         bKeep;
+   int         bEnd;
+   sf_count_t  position;
+   float       fVolume;
+   float      *output;
+   PaStream   *stream;
 } StreamData;
 
+/*
 #include "hbapifs.h"
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
@@ -66,6 +68,7 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
       }
    }
 }
+*/
 
 HB_FUNC( SF_INITDATA )
 {
@@ -73,7 +76,8 @@ HB_FUNC( SF_INITDATA )
    StreamData *data =
          ( StreamData * ) malloc( sizeof( StreamData ) );
 
-   data->bPause = data->bEnd = data->bKeep = data->position = 0;
+   data->bPause = data->bEnd = data->bKeep = 0;
+   data->position = 0;
    data->sfInfo.format = 0;
    data->fVolume = 1;
    data->sndFile = sf_open( hb_parc(1), SFM_READ, &data->sfInfo );
@@ -123,6 +127,7 @@ HB_FUNC( SF_SETACCORD )
    data->sndAcc3 = (data3)? data3->sndFile : NULL;
    data->sndAcc4 = (data4)? data4->sndFile : NULL;
    data->bPause = data->bEnd = 0;
+   data->iAccoDelay = HB_ISNUM(6)? hb_parni(6) * data->sfInfo.samplerate / 1000 : 0;
 }
 
 HB_FUNC( SF_GETVERSION )
@@ -144,7 +149,7 @@ HB_FUNC( SF_READ_FLOAT )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
    PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY ), pSubArr;
-   int iOffset = (HB_ISNUM(3))? hb_parni(3) : -1;
+   sf_count_t iOffset = (HB_ISNUM(3))? hb_parnl(3) : -1;
    int iStart = (HB_ISNUM(4))? hb_parni(4)-1 : 0;
    int iKol = (HB_ISNUM(5))? hb_parni(5) : -1;
    int iLen = hb_arrayLen( pArr );
@@ -164,7 +169,7 @@ HB_FUNC( SF_READ_FLOAT )
    iKol *= iChan;
 
    out = (float *) malloc( iKol * sizeof( float ) );
-   iCount = sf_read_float( data->sndFile, out, iKol );
+   iCount = (int) sf_read_float( data->sndFile, out, iKol );
 
    //_writelog( "ac.log", 0, "%d %d %d\r\n", iKol, iCount, iChan );
    if( iCount )
@@ -200,7 +205,7 @@ HB_FUNC( SF_READ_INT )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
    PHB_ITEM pArr = hb_param( 2, HB_IT_ARRAY );
-   int iOffset = (HB_ISNUM(3))? hb_parni(3) : -1;
+   sf_count_t iOffset = (HB_ISNUM(3))? hb_parnl(3) : -1;
    int iStart = (HB_ISNUM(3))? hb_parni(4)-1 : 0;
    int iKol = (HB_ISNUM(3))? hb_parni(5) : -1;
    int iLen = hb_arrayLen( pArr );
@@ -214,7 +219,7 @@ HB_FUNC( SF_READ_INT )
       iKol = iLen - iStart;
 
    out = (int *) malloc( iKol * sizeof( int ) );
-   iCount = sf_read_int( data->sndFile, out, iKol );
+   iCount = (int) sf_read_int( data->sndFile, out, iKol );
 
    if( iCount )
    {
@@ -252,14 +257,15 @@ HB_FUNC( SF_GETRANGE )
    StreamData *data = (StreamData *) hb_parptr(1);
    float * out, * pOut;
    float fMax = 0, fMin = 0;
-   int iKol = 2048, iCount, i, iOffset = 0;
+   int iKol = 2048, iCount, i;
+   sf_count_t iOffset = 0;
 
    out = (float *) malloc( iKol * sizeof( float ) );
 
    do {
       sf_seek( data->sndFile, iOffset, SF_SEEK_SET );
       iOffset += iKol;
-      iCount = sf_read_float( data->sndFile, out, iKol );
+      iCount = (int) sf_read_float( data->sndFile, out, iKol );
       pOut = out;
       for( i = 0; i < iCount; i ++, pOut ++ )
       {
@@ -284,6 +290,7 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
    float *out = (float*) output;
    int iChannels = data->sfInfo.channels;
    int iCount, i;
+   sf_count_t position;
 
    (void) input;
    (void) frameCount;
@@ -295,7 +302,6 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
    {
       data->sndFileRepl = data->sndFileNew;
       data->sndFileNew = NULL;
-      //data->position = 0;
       data->position = BUFFER_SIZE * 5;
    }
 
@@ -314,12 +320,12 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
    if( data->sndFileRepl )
    {
       sf_seek( data->sndFileRepl, data->position, SF_SEEK_SET );
-      iCount = sf_read_float( data->sndFileRepl, out, BUFFER_SIZE * iChannels );
+      iCount = (int) sf_read_float( data->sndFileRepl, out, BUFFER_SIZE * iChannels );
    }
    else
    {
       sf_seek( data->sndFile, data->position, SF_SEEK_SET );
-      iCount = sf_read_float( data->sndFile, out, BUFFER_SIZE * iChannels );
+      iCount = (int) sf_read_float( data->sndFile, out, BUFFER_SIZE * iChannels );
    }
 
    if( iCount == 0 && data->bKeep )
@@ -328,12 +334,12 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
       if( data->sndFileRepl )
       {
          sf_seek( data->sndFileRepl, data->position, SF_SEEK_SET );
-         iCount = sf_read_float( data->sndFileRepl, out, BUFFER_SIZE * iChannels );
+         iCount = (int) sf_read_float( data->sndFileRepl, out, BUFFER_SIZE * iChannels );
       }
       else
       {
          sf_seek( data->sndFile, data->position, SF_SEEK_SET );
-         iCount = sf_read_float( data->sndFile, out, BUFFER_SIZE * iChannels );
+         iCount = (int) sf_read_float( data->sndFile, out, BUFFER_SIZE * iChannels );
       }
    }
 
@@ -341,29 +347,29 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
       for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
          out[i] *= data->fVolume;
 
-   if( data->sndAcc1 )
+   if( data->sndAcc1 && ( (position = data->position - data->iAccoDelay) >= 0 ) )
    {
       if( !data->output )
          data->output = (float *) malloc( BUFFER_SIZE * iChannels * sizeof( float ) );
-      sf_seek( data->sndAcc1, data->position, SF_SEEK_SET );
+      sf_seek( data->sndAcc1, position, SF_SEEK_SET );
       sf_read_float( data->sndAcc1, data->output, BUFFER_SIZE * iChannels );
       for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
          out[i] += data->output[i] * data->fVolume;
-      if( data->sndAcc2 )
+      if( data->sndAcc2 && ( (position = data->position - data->iAccoDelay*2) >= 0 ) )
       {
-         sf_seek( data->sndAcc2, data->position, SF_SEEK_SET );
+         sf_seek( data->sndAcc2, position, SF_SEEK_SET );
          sf_read_float( data->sndAcc2, data->output, BUFFER_SIZE * iChannels );
          for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
             out[i] += data->output[i] * data->fVolume;
-         if( data->sndAcc3 )
+         if( data->sndAcc3 && ( (position = data->position - data->iAccoDelay*3) >= 0 ) )
          {
-            sf_seek( data->sndAcc3, data->position, SF_SEEK_SET );
+            sf_seek( data->sndAcc3, position, SF_SEEK_SET );
             sf_read_float( data->sndAcc3, data->output, BUFFER_SIZE * iChannels );
             for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
                out[i] += data->output[i] * data->fVolume;
-            if( data->sndAcc4 )
+            if( data->sndAcc4 && ( (position = data->position - data->iAccoDelay*4) >= 0 ) )
             {
-               sf_seek( data->sndAcc4, data->position, SF_SEEK_SET );
+               sf_seek( data->sndAcc4, position, SF_SEEK_SET );
                sf_read_float( data->sndAcc4, data->output, BUFFER_SIZE * iChannels );
                for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
                   out[i] += data->output[i] * data->fVolume;
@@ -459,7 +465,8 @@ HB_FUNC( PA_OPENSTREAM )
    StreamData *data = (StreamData *) hb_parptr(1);
    PaStreamParameters outputParameters;
 
-   data->bPause = data->bEnd = data->bKeep = data->position = 0;
+   data->bPause = data->bEnd = data->bKeep = 0;
+   data->position = 0;
    outputParameters.device = Pa_GetDefaultOutputDevice();
    outputParameters.channelCount = data->sfInfo.channels;
    outputParameters.sampleFormat = paFloat32;
@@ -480,7 +487,8 @@ HB_FUNC( PA_STARTSTREAM )
 
    StreamData *data = (StreamData *) hb_parptr(1);
 
-   data->bPause = data->bEnd = data->bKeep = data->position = 0;
+   data->bPause = data->bEnd = data->bKeep = 0;
+   data->position = 0;
    hb_retni( Pa_StartStream( data->stream ) );
 }
 
@@ -492,6 +500,7 @@ HB_FUNC( PA_STOPSTREAM )
    data->sndFileRepl = data->sndFileNew = NULL;
    data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
    data->bPause = data->bKeep = 0;
+   data->iAccoDelay = 0;
 
    Pa_StopStream( data->stream );
    hb_retni( Pa_CloseStream( data->stream ) );
@@ -505,6 +514,7 @@ HB_FUNC( PA_ABORTSTREAM )
    data->sndFileRepl = data->sndFileNew = NULL;
    data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
    data->bPause = data->bKeep = 0;
+   data->iAccoDelay = 0;
 
    Pa_AbortStream( data->stream );
    hb_retni( Pa_CloseStream( data->stream ) );
@@ -518,6 +528,7 @@ HB_FUNC( PA_CLOSESTREAM )
    data->sndFileRepl = data->sndFileNew = NULL;
    data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
    data->bPause = data->bKeep = 0;
+   data->iAccoDelay = 0;
 
    hb_retni( Pa_CloseStream( data->stream ) );
 }
@@ -558,5 +569,5 @@ HB_FUNC( PA_SETEND )
 HB_FUNC( PA_GETPOSITION )
 {
    StreamData *data = (StreamData *) hb_parptr(1);
-   hb_retni( data->position );
+   hb_retnl( data->position );
 }

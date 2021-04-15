@@ -147,7 +147,7 @@ METHOD GetTracks() CLASS Mscz
 METHOD ToLM( oLM, cPartId ) CLASS Mscz
 
    LOCAL arr := {}, oNode0, oNode1, oNode2, oNode3, oNode4, n, i, j, j1, j2, nm, cTitle, cTmp, nPos, nType
-   LOCAL nNote, nDur, l1_5, cTi1, cTi2, aChord
+   LOCAL nNote, nDur, l1_5, lArpeggio, cTi1, cTi2, aChord
 
    FOR n := 1 TO Len( ::oXML:aItems[1]:aItems )
       IF Lower( ::oXML:aItems[1]:aItems[n]:title ) == "score"
@@ -175,7 +175,7 @@ METHOD ToLM( oLM, cPartId ) CLASS Mscz
                FOR j := 1 TO Len( oNode2:aItems )
                   IF ( cTitle := Lower( (oNode3 := oNode2:aItems[j]):title ) ) == "chord"
                      nNote := nDur := 0
-                     l1_5 := .F.
+                     l1_5 := lArpeggio := .F.
                      cTi1 := cTi2 := ""
                      aChord := Nil
                      FOR j1 := 1 TO Len( oNode3:aItems )
@@ -201,6 +201,7 @@ METHOD ToLM( oLM, cPartId ) CLASS Mscz
                            NEXT
                         ELSEIF cTitle == "dots"
                            l1_5 := .T.
+                        ELSEIF cTitle == "arpeggio"
                         ENDIF
                      NEXT
                      Aadd( arr, { Iif( !Empty( aChord ), aChord, nNote ), Iif( l1_5, nDur+0.5, nDur ) } )
@@ -219,6 +220,9 @@ METHOD ToLM( oLM, cPartId ) CLASS Mscz
                      ENDIF
                      IF !Empty( cTi1 )
                         noteSetAttr( arr[Len(arr)], "ti1_"+cTi1 )
+                     ENDIF
+                     IF lArpeggio
+                        noteSetAttr( arr[Len(arr)], "arp" )
                      ENDIF
 
                   ELSEIF cTitle == "rest"
@@ -372,6 +376,10 @@ METHOD AddNote( xNote, nDur, cAttr ) CLASS Mscz
             EXIT
          ENDIF
       ENDDO
+      IF "arp" $ cAttr
+         oNode1:Add( oNode2 := HXMLNode():New( "Arpeggio" ) )
+         oNode2:Add( HXMLNode():New( "subtype",,, "0" ) )
+      ENDIF
    ENDIF
 
    RETURN .T.

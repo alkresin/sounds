@@ -63,7 +63,7 @@ STATIC pClr
 STATIC oPenGrid, oPenRed, oPen2, oBrushCursor, oBrushRange
 STATIC oclef1, oclef2, oBemol, oDiez, oBekar
 STATIC oNote1, oNote2, oNote4, oNote8, oNote16, oNote32, oNote2d, oNote4d, oNote8d, oNote16d, oNote32d
-STATIC op1, op2, op4, op8, op16, op32, oDot, oTie, oTied
+STATIC op1, op2, op4, op8, op16, op32, oDot, oTie, oTied, oArpeggio
 STATIC oBmpFs1, oBmpFs2
 STATIC oIns, oBmpStop, oBmpQue, oBmpInfo, oBmpAudio
 STATIC handCursor
@@ -109,7 +109,7 @@ FUNCTION Main
    "Воспроизведение", "Играть выделенное", "Импорт", "Аккорды", "Экспорт", "Транспонирование", ;
    "Вверх", "Вниз", "Выполнить", "Отменить", "Лига", "Отменить выделение", "Заменить", ;
    "Создать аккорд","О программе", "Ноты были изменены. Сохранить?", "Да", "Нет", ;
-   "Изменения вступят в силу после перезагрузки программы" }
+   "Изменения вступят в силу после перезагрузки программы", "Арпеджио" }
 
    IF hwg__isUnicode()
       hb_cdpSelect( "UTF8" )
@@ -245,6 +245,7 @@ STATIC FUNCTION SetStyles()
    oIns := HBitmap():AddResource( "ins_16" )
    oTie := HBitmap():AddResource( "tie_32" )
    oTied := HBitmap():AddResource( "tie_32d" )
+   oArpeggio := HBitmap():AddResource( "arpeggio" )
    oBmpFs1 := HBitmap():AddResource( "fs1" )
    oBmpFs2 := HBitmap():AddResource( "fs2" )
    oBmpStop := HBitmap():AddResource( "dialog-error" )
@@ -1436,8 +1437,12 @@ STATIC FUNCTION KeyPress( nNote )
 FUNCTION PlayKey( n )
 
    LOCAL aMenu := { aMsgs[85], aMsgs[86], aMsgs[14] }, i
-   LOCAL lAdd := .F., nTDur, nDur, lAcco := ( Valtype(n) == "A" )
+   LOCAL lAdd := .F., nTDur, nDur, lAcco := .F.
 
+   IF Valtype(n) == "A"
+      lAcco := .T.
+      ASort( n )
+   ENDIF
    IF nCurrMode == 1 .AND. Iif( lAcco, PlayAccord( n ),  Play( n := (n + ( nOctave - 1 ) * 12) ) )
 
       ShowNote( n )
@@ -1458,8 +1463,10 @@ FUNCTION PlayKey( n )
          ELSE
             IF Valtype( :aNotes[:nCurr,1] ) == "A"
                AAdd( :aNotes[:nCurr,1], n )
+               ASort( :aNotes[:nCurr,1] )
             ELSEIF ( i := FileMenu( oPaneNote:nLeft+200,oPaneNote:nTop+16,120,90,,,, aMenu ) ) == 2
                   :aNotes[:nCurr,1] := { :aNotes[:nCurr,1], n }
+                  ASort( :aNotes[:nCurr,1] )
             ELSEIF i == 1
                :aNotes[:nCurr,1] := n
             ENDIF
@@ -1550,12 +1557,14 @@ STATIC FUNCTION PlayNotes( lSele )
             IF nOrig == Nil
                nOrig := arr[1]
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
-                  Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), Iif( Len(arr)>4,aSounds[arr[5],1],Nil ) )
+                  Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), 120, 0 ) )
                Play( nOrig )
             ELSE
                pa_SetVolume( aSounds[ nOrig, 1 ], nCurrVol )
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
-                  Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), Iif( Len(arr)>4,aSounds[arr[5],1],Nil ) )
+                  Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), 120, 0 ) )
                sf_ChangeData( aSounds[nOrig,1], aSounds[ arr[1], 1 ] )
             ENDIF
          ENDIF
@@ -1577,7 +1586,8 @@ STATIC FUNCTION PlayNotes( lSele )
             ELSE
                IF LoadNote( n )
                   pa_SetVolume( aSounds[ n, 1 ], nCurrVol )
-                  IF Len( oScore:aNotes[i] ) == 2 .OR. !("ti2/" $ oScore:aNotes[i,3])
+                  //IF Len( oScore:aNotes[i] ) == 2 .OR. !("ti2/" $ oScore:aNotes[i,3])
+                  IF !noteCheckAttr( oScore:aNotes[i], "ti2" )
                      sf_ChangeData( aSounds[nOrig,1], aSounds[ n, 1 ] )
                   ENDIF
                ENDIF
@@ -2155,6 +2165,9 @@ STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nStart )
                ENDIF
                hwg_Drawline( hDC, x1+(i-nStart+1)*nWidth-1, y1-y, x1+(i-nStart+1)*nWidth-1, y1+nLineHeight*4+y )
             ENDIF
+            IF 'arp/' $ aNotes[i,3]
+               hwg_Drawtransparentbitmap( hDC, oArpeggio:handle, x1+(i-nStart)*nWidth-oArpeggio:nWidth, y1, CLR_WHITE )
+            ENDIF
          ENDIF
       NEXT
    ENDIF
@@ -2689,7 +2702,7 @@ STATIC FUNCTION NoteEditor()
          hb_Ains( oScore:aNotes, oScore:nCurr, {0,1}, .T. )
          oScore:lUpdate := .T.
       ENDIF
-      hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      oPaneScore:Refresh()
       RETURN .T.
    }
    LOCAL bInsTact := {||
@@ -2700,7 +2713,7 @@ STATIC FUNCTION NoteEditor()
             oScore:aNotes[oScore:nCurr,3] := Iif( Empty(oScore:aNotes[oScore:nCurr]), "t/", "" )
          ENDIF
          oScore:lUpdate := .T.
-         hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+         oPaneScore:Refresh()
       ENDIF
       RETURN .T.
    }
@@ -2710,7 +2723,15 @@ STATIC FUNCTION NoteEditor()
          noteSetAttr( oScore:aNotes[oScore:nSeleStart], "ti1" )
          noteSetAttr( oScore:aNotes[oScore:nSeleEnd], "ti2" )
          oScore:lUpdate := .T.
-         hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+         oPaneScore:Refresh()
+      ENDIF
+      RETURN .T.
+   }
+   LOCAL bSetArp := {||
+      IF !Empty( oScore:aNotes ) .AND. ValType( oScore:aNotes[oScore:nCurr,1] ) == "A"
+         noteSetAttr( oScore:aNotes[oScore:nCurr], "arp" )
+         oScore:lUpdate := .T.
+         oPaneScore:Refresh()
       ENDIF
       RETURN .T.
    }
@@ -2720,7 +2741,7 @@ STATIC FUNCTION NoteEditor()
          oScore:aMetre[2] := Val( Right(aMetres[n1],1) )
          oScore:SetScrKol( oPaneScore )
          oScore:lUpdate := .T.
-         hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+         oPaneScore:Refresh()
       ENDIF
       RETURN .T.
    }
@@ -2729,7 +2750,7 @@ STATIC FUNCTION NoteEditor()
          oScore:nKey := Val( aKeySign[n2] )
          oScore:SetScrKol( oPaneScore )
          oScore:lUpdate := .T.
-         hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+         oPaneScore:Refresh()
       ENDIF
       RETURN .T.
    }
@@ -2803,9 +2824,10 @@ STATIC FUNCTION NoteEditor()
       ON CLICK bSetTie TOOLTIP aMsgs[83]
    ATail(oDlgEdi:aControls):aStyle := aStyleBtn
 
-   @ 160,170 GET COMBOBOX oCombo2 VAR n2 ITEMS aKeySign SIZE 80, 28 ON CHANGE bKeySign
-
-   @ 260,170 GET COMBOBOX oCombo1 VAR n1 ITEMS aMetres SIZE 80, 28 ON CHANGE bMetre
+   @ 140, 170 OWNERBUTTON SIZE 30, 28 ;
+      TEXT 'a' ;
+      ON CLICK bSetArp TOOLTIP aMsgs[92]
+   ATail(oDlgEdi:aControls):aStyle := aStyleBtn
 
    @ 20, 210 SAY "" of oPaneTst1 SIZE oDlgEdi:nWidth-40, 2
 
@@ -2813,6 +2835,10 @@ STATIC FUNCTION NoteEditor()
       BITMAP "up_down" FROM RESOURCE TRANSPARENT COLOR CLR_WHITE ;
       ON CLICK {||Transpo()} TOOLTIP aMsgs[78]
    ATail(oDlgEdi:aControls):aStyle := aStyleBtn
+
+   @ 160,230 GET COMBOBOX oCombo2 VAR n2 ITEMS aKeySign SIZE 80, 28 ON CHANGE bKeySign
+
+   @ 260,230 GET COMBOBOX oCombo1 VAR n1 ITEMS aMetres SIZE 80, 28 ON CHANGE bMetre
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
@@ -3417,7 +3443,8 @@ STATIC FUNCTION PlayAccord( arr )
 
    StopSound( arr[1] )
    sf_SetAccord( aSounds[arr[1],1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
-      Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), Iif( Len(arr)>4,aSounds[arr[5],1],Nil ) )
+      Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
+      Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), 80 )
    Play( arr[1] )
 
    RETURN .T.

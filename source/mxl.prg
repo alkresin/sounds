@@ -128,7 +128,8 @@ METHOD GetTracks() CLASS Mxl
 METHOD ToLM( oLM, cPartId ) CLASS Mxl
 
    LOCAL oNode1, oNode2
-   LOCAL n, i, j, j1, j2, nm, cTitle, cTmp, nNote, nOct, nDur, nDur1, lTi1, lTi2, lChord, arr := {}
+   LOCAL n, i, j, j1, j2, nm, cTitle, cTmp, nNote, nOct, nDur, nDur1
+   LOCAL lTi1, lTi2, lChord, lArpeggio, arr := {}
 
    FOR n := 1 TO Len( ::oXML:aItems[1]:aItems )
       IF (oNode1 := ::oXML:aItems[1]:aItems[n]):title == "part" .AND. ;
@@ -142,7 +143,7 @@ METHOD ToLM( oLM, cPartId ) CLASS Mxl
                FOR j := 1 TO Len( oNode1:aItems[i]:aItems )
                   IF (oNode2 := oNode1:aItems[i]:aItems[j]):title == "note"
                      nNote := nDur := nDur1 := 0
-                     lTi1 := lTi2 := lChord := .F.
+                     lTi1 := lTi2 := lChord := lArpeggio := .F.
                      FOR j1 := 1 TO Len( oNode2:aItems )
                         IF (cTitle := oNode2:aItems[j1]:title ) == "pitch"
                            FOR j2 := 1 TO Len( oNode2:aItems[j1]:aItems )
@@ -167,6 +168,12 @@ METHOD ToLM( oLM, cPartId ) CLASS Mxl
                            nDur := Ascan( aDurType, AllTrim(oNode2:aItems[j1]:aItems[1]) )
                         ELSEIF cTitle == "chord"
                            lChord := .T.
+                        ELSEIF cTitle == "notations"
+                           FOR j2 := 1 TO Len( oNode2:aItems[j1]:aItems )
+                              IF (cTitle := oNode2:aItems[j1]:aItems[j2]:title ) == "arpeggiate"
+                                 lArpeggio := .T.
+                              ENDIF
+                           NEXT
                         ENDIF
                      NEXT
                      IF nDur > 0
@@ -195,6 +202,9 @@ METHOD ToLM( oLM, cPartId ) CLASS Mxl
                            IF lTi1
                               noteSetAttr( ATail(arr), "ti1" )
                            ENDIF
+                        ENDIF
+                        IF lArpeggio
+                           noteSetAttr( ATail(arr), "arp" )
                         ENDIF
                      ENDIF
 
@@ -305,6 +315,10 @@ METHOD AddNote( xNote, nDur, cAttr ) CLASS Mxl
       ::oMeasure:Add( oNode := HXMLNode():New( "note" ) )
       IF j > 1
          oNode:Add( HXMLNode():New( "chord", HBXML_TYPE_SINGLE ) )
+         IF "arp" $ cAttr
+            oNode:Add( oNode1 := HXMLNode():New( "notations" ) )
+            oNod1:Add( HXMLNode():New( "arpeggiate", HBXML_TYPE_SINGLE ) )
+         ENDIF
       ENDIF
       IF Empty( cRes )
          oNode:Add( HXMLNode():New( "rest", HBXML_TYPE_SINGLE ) )
