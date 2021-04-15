@@ -317,7 +317,7 @@ METHOD AddNote( xNote, nDur, cAttr ) CLASS Mxl
          oNode:Add( HXMLNode():New( "chord", HBXML_TYPE_SINGLE ) )
          IF "arp" $ cAttr
             oNode:Add( oNode1 := HXMLNode():New( "notations" ) )
-            oNod1:Add( HXMLNode():New( "arpeggiate", HBXML_TYPE_SINGLE ) )
+            oNode1:Add( HXMLNode():New( "arpeggiate", HBXML_TYPE_SINGLE ) )
          ENDIF
       ENDIF
       IF Empty( cRes )
