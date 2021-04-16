@@ -28,13 +28,15 @@
 STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar
 STATIC oPen1, oPen2, oFontNote, oBrushNote
 STATIC cPlugDir
-STATIC nCurrNote := 0
+STATIC nCurrNote := 0, nCurrMode := 0
+STATIC pAccords, aAccords
 
 MEMVAR oMsg, aPlugMenu, bPlugNote
 
 FUNCTION Plug_guitar()
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
+   Guitar_ReadIni()
    AAdd( aPlugMenu, { "Guitar", {||guitar_Dlg()} } )
    IF !Empty( bPlugNote )
       bPlugNote_Orig := bPlugNote
@@ -70,6 +72,10 @@ STATIC FUNCTION guitar_Dlg()
    @ 2, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-4, oDlgGuitar:nHeight-TOPPANE_HEIGHT*2 ;
       STYLE SS_OWNERDRAW BACKCOLOR CLR_BROWN_3 ON SIZE {||.t.}
    oPaneGuitar:bPaint := {|| guitar_Paint()}
+
+   @ 0, oDlgGuitar:nHeight-TOPPANE_HEIGHT OWNERBUTTON SIZE 120, TOPPANE_HEIGHT ;
+      TEXT "Accord" COLOR CLR_WHITE FONT oMainWindow:oPaneTop:aControls[1]:oFont ON CLICK {||Guitar_Accords()}
+   ATail( oDlgGuitar:aControls ):aStyle := oMainWindow:oPaneTop:aControls[1]:aStyle
 
    oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
 
@@ -118,7 +124,7 @@ STATIC FUNCTION guitar_Paint()
             n := nCurrNote - aStrings[i,2]
             hwg_Fillrect( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, oBrushNote:handle )
             hwg_Rectangle( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20 )
-            hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+4, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, DT_LEFT )
+            hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+6, y1-6+(i-1)*20, x1+n*20+22, y1+8+(i-1)*20, DT_LEFT )
          ELSE
             n := Int( Abs( nCurrNote - aStrings[i,2] ) % 12 )
             IF nCurrNote < aStrings[i,2]
@@ -126,7 +132,7 @@ STATIC FUNCTION guitar_Paint()
             ENDIF
             hwg_Fillrect( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, o:brush:handle )
             hwg_Rectangle( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20 )
-            hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+4, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, DT_LEFT )
+            hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+6, y1-6+(i-1)*20, x1+n*20+22, y1+8+(i-1)*20, DT_LEFT )
          ENDIF
       ENDIF
    NEXT
@@ -139,5 +145,46 @@ STATIC FUNCTION guitar_Paint()
 #else
    hwg_Endpaint( o:handle, pps )
 #endif
+
+   RETURN Nil
+
+STATIC FUNCTION Guitar_Accords()
+
+   LOCAL i
+   LOCAL x1, y1
+#ifndef __PLATFORM__UNIX
+   LOCAL aCoors1 := hwg_GetWindowRect( oDlgReco:oParent:handle )
+   LOCAL aCoors2 := hwg_GetWindowRect( oDlgGuitar:handle )
+#endif
+
+#ifdef __PLATFORM__UNIX
+   x1 := oDlgGuitar:nLeft-oDlgGuitar:oParent:nLeft
+   y1 := oDlgGuitar:nTop-oDlgGuitar:oParent:nTop+oDlgGuitar:nHeight-TOPPANE_HEIGHT-120
+#else
+   x1 := aCoors2[1] - aCoors1[1]; y1 := aCoors2[2] - aCoors1[2] + oDlgGuitar:nHeight-TOPPANE_HEIGHT-120
+#endif
+
+   IF ( i := FileMenu( x1, y1, 120, 120,,,, aAccords,, .T. ) ) > 0
+      oDlgGuitar:oPanel:SetText( aAccords[i] )
+      nCurrMode := 1
+      oDlgGuitar:oPanel:Refresh()
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION Guitar_ReadIni()
+
+   LOCAL cFile := cPlugDir + "guitar.ini"
+   LOCAL hIni := _iniRead( cFile ), aIni, nSect
+
+   IF !Empty( hIni )
+      aIni := hb_HKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Upper( aIni[ nSect ] ) == "ACCORDS"
+            pAccords := hIni[ aIni[nSect] ]
+            aAccords := hb_HKeys( pAccords )
+         ENDIF
+      NEXT
+   ENDIF
 
    RETURN Nil

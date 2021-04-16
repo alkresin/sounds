@@ -14,7 +14,7 @@
 
 STATIC oBmpCheck
 
-FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs )
+FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs, lScroll )
 
    LOCAL oMainWindow := HWindow():GetMain()
    LOCAL oDlg1, oBrw, lCapture := .F., i, lMulti := .F., lbline := .F., nRes := 0
@@ -45,16 +45,18 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
             hwg_SetCapture(oBrw:handle)
             lCapture := .T.
          ENDIF
-         ym := hwg_Hiword( lp )
-         xm := hwg_Loword( lp )
-         IF ym < 0 .OR. ym > oBrw:nHeight+1 .OR. xm < 0 .OR. xm > oBrw:nWidth+1
-         ELSE
-            ym := Iif( ym < oBrw:y1, 0, Int( (ym - oBrw:y1 ) / (oBrw:height + 1 ) ) + 1 )
-            IF ym > Len( aChoices )
-               ym := Len( aChoices )
+         IF Empty( lScroll )
+            ym := hwg_Hiword( lp )
+            xm := hwg_Loword( lp )
+            IF ym < 0 .OR. ym > oBrw:nHeight+1 .OR. xm < 0 .OR. xm > oBrw:nWidth+1
+            ELSE
+               ym := Iif( ym < oBrw:y1, 0, Int( (ym - oBrw:y1 ) / (oBrw:height + 1 ) ) + 1 ) - oBrw:rowPos + oBrw:nCurrent
+               IF ym > Len( aChoices )
+                  ym := Len( aChoices )
+               ENDIF
+               oBrw:rowPos := oBrw:nCurrent := ym
+               oBrw:Refresh()
             ENDIF
-            oBrw:rowPos := oBrw:nCurrent := ym
-            oBrw:Refresh()
          ENDIF
       ELSEIF msg == WM_LBUTTONDOWN
          h := oBrw:nHeight
@@ -66,7 +68,7 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
          oDlg1:Close()
          IF ym < 0 .OR. ym > h+1 .OR. xm < 0 .OR. xm > w+1
          ELSE
-            ym := Iif( ym < y1, 0, Int( (ym - y1 ) / (hl + 1 ) ) + 1 )
+            ym := Iif( ym < y1, 0, Int( (ym - y1 ) / (hl + 1 ) ) + 1 ) - oBrw:rowPos + oBrw:nCurrent
             IF ym > Len( aChoices )
                ym := Len( aChoices )
             ENDIF
@@ -101,7 +103,11 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
       ON EXIT {||hwg_Releasecapture()}
    oDlg1:oParent := oMainWindow
 
-   @ 0, 0 BROWSE oBrw ARRAY OF oDlg1 SIZE nWidth, nHeight FONT oMainWindow:oFont NO VSCROLL
+   IF !Empty( lScroll )
+      @ 0, 0 BROWSE oBrw ARRAY OF oDlg1 SIZE nWidth, nHeight FONT oMainWindow:oFont
+   ELSE
+      @ 0, 0 BROWSE oBrw ARRAY OF oDlg1 SIZE nWidth, nHeight FONT oMainWindow:oFont NO VSCROLL
+   ENDIF
 
    oBrw:aArray := aChoices
    IF Valtype( aChoices[1] ) == "A"
