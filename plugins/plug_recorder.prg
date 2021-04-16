@@ -62,18 +62,28 @@ FUNCTION Plug_recorder()
 
 STATIC FUNCTION recorder_Dlg()
 
-   LOCAL oMainWindow := HWindow():GetMain(), oPanel
+   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oBinCnt
 
    IF !Empty( oDlgReco )
       RETURN Nil
    ENDIF
 
    IF Empty( oBmpFull )
-      oBmpFull := HBitmap():AddFile( cPlugDir + "c1.bmp" )
-      oBmpEmpty := HBitmap():AddFile( cPlugDir + "c0.bmp" )
-      oBmpHalf := HBitmap():AddFile( cPlugDir + "c2.bmp" )
-      oBmpFull_2 := HBitmap():AddFile( cPlugDir + "c1_2.bmp" )
-      oBmpEmpty_2 := HBitmap():AddFile( cPlugDir + "c0_2.bmp" )
+      IF !Empty( oBinCnt := HBinC():Open( cPlugDir + "plug_recorder.bin" ) )
+         oBmpFull := HBitmap():AddString( "c1", oBinCnt:Get( "c1" ) )
+         oBmpEmpty := HBitmap():AddString( "c0", oBinCnt:Get( "c0" ) )
+         oBmpHalf := HBitmap():AddString( "c2", oBinCnt:Get( "c2" ) )
+         oBmpFull_2 := HBitmap():AddString( "c1_2", oBinCnt:Get( "c1_2" ) )
+         oBmpEmpty_2 := HBitmap():AddString( "c0_2", oBinCnt:Get( "c0_2" ) )
+         oBinCnt:Close()
+         /*
+         oBmpFull := HBitmap():AddFile( cPlugDir + "c1.bmp" )
+         oBmpEmpty := HBitmap():AddFile( cPlugDir + "c0.bmp" )
+         oBmpHalf := HBitmap():AddFile( cPlugDir + "c2.bmp" )
+         oBmpFull_2 := HBitmap():AddFile( cPlugDir + "c1_2.bmp" )
+         oBmpEmpty_2 := HBitmap():AddFile( cPlugDir + "c0_2.bmp" )
+         */
+      ENDIF
       oPen := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    ENDIF
 
@@ -121,13 +131,13 @@ STATIC FUNCTION recorder_Type()
    x1 := aCoors2[1] - aCoors1[1]; y1 := aCoors2[2] - aCoors1[2] + oDlgReco:nHeight-TOPPANE_HEIGHT-120
 #endif
 
-   i := FileMenu( x1, y1, oDlgReco:nWidth, 120, ;
+   i := FileMenu( x1, y1, oDlgReco:nWidth, 120,,,, ;
       { {(nCurrType==1),"Sopranino"}, {(nCurrType==2),"Soprano"}, {(nCurrType==3),"Alto"}, {(nCurrType==4),"Tenor"} } )
    IF i > 0
       nCurrType := i
       oBtn := oDlgReco:aControls[Len(oDlgReco:aControls)-1]
       oBtn:title := aTypes[i]
-      hwg_Redrawwindow( oBtn:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      oBtn:Refresh()
    ENDIF
 
    RETURN Nil
@@ -147,12 +157,12 @@ STATIC FUNCTION recorder_Appl()
    //x1 := 0; y1 := oDlgReco:nHeight-TOPPANE_HEIGHT-60
    x1 := aCoors2[1] - aCoors1[1]; y1 := aCoors2[2] - aCoors1[2] + oDlgReco:nHeight-TOPPANE_HEIGHT-60
 #endif
-   i := FileMenu( x1, y1, oDlgReco:nWidth, 60, { {(nCurrAppl==1),"German"}, {(nCurrAppl==2),"Barocco"} } )
+   i := FileMenu( x1, y1, oDlgReco:nWidth, 60,,,, { {(nCurrAppl==1),"German"}, {(nCurrAppl==2),"Barocco"} } )
    IF i > 0
       nCurrAppl := i
       oBtn := oDlgReco:aControls[Len(oDlgReco:aControls)]
       oBtn:title := Iif( i == 1, "G", "B" )
-      hwg_Redrawwindow( oBtn:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      oBtn:Refresh()
    ENDIF
 
    RETURN Nil
@@ -168,8 +178,8 @@ STATIC FUNCTION recorder_Show( n )
 
    nCurrNote := Iif( Valtype(n) == "N", n, 0 )
    oDlgReco:oPanel:SetText( Note2Text( nCurrNote ) )
-   hwg_Redrawwindow( oDlgReco:oPanel:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
-   hwg_Redrawwindow( oPaneReco:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+   oDlgReco:oPanel:Refresh()
+   oPaneReco:Refresh()
 
    RETURN Nil
 
@@ -216,7 +226,6 @@ STATIC FUNCTION recorder_Paint()
       hwg_Drawtransparentbitmap( hDC, Iif(arr[9]==0,oBmpEmpty:handle,oBmpFull:handle), xc-oBmpEmpty:nWidth, y1, CLR_WHITE )
       hwg_Drawtransparentbitmap( hDC, Iif(arr[10]==0,oBmpEmpty_2:handle,oBmpFull_2:handle), xc, y1, CLR_WHITE )
    ENDIF
-
 
 #ifdef __PLATFORM__UNIX
    hwg_Releasedc( o:handle, hDC )
