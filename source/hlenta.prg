@@ -16,8 +16,11 @@
 
 CLASS HLenta INHERIT HControl
 
-CLASS VAR winclass INIT "STATIC"
+CLASS VAR winclass INIT "PANEL"
 
+#ifdef __PLATFORM__UNIX
+   DATA hBox
+#endif
    DATA lVertical
    DATA aItems
    DATA nItemSize
@@ -75,8 +78,11 @@ METHOD Activate() CLASS HLenta
    LOCAL handle := ::oParent:handle
 
    IF !Empty( handle )
-      ::handle := hwg_Createpanel( handle, ::id, ;
-         ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#ifdef __PLATFORM__UNIX
+      ::handle := hwg_Createpanel( Self, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#else
+      ::handle := hwg_Createpanel( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#endif
       ::Init()
    ENDIF
 
@@ -104,24 +110,25 @@ METHOD onEvent( msg, wParam, lParam ) CLASS HLenta
 
    IF msg == WM_MOUSEMOVE
       xPos := hwg_Loword( lParam ); yPos := hwg_Hiword( lParam )
-      IF ::lCaptured
-         IF xPos < 0 .OR. xPos > ::nWidth .OR. yPos < 0 .OR. yPos > ::nHeight
-            ::lCaptured := .F.
-            ::nOver := 0
-            hwg_Releasecapture()
-         ELSE
-            ::Drag( xPos, yPos )
-         ENDIF
+      IF xPos < 0 .OR. xPos > ::nWidth .OR. yPos < 0 .OR. yPos > ::nHeight
+         ::lCaptured := .F.
+         ::nOver := 0
+         hwg_Releasecapture()
+         lRedraw := .T.
       ELSE
-         IF ::lVertical
-            y1 := Int( ::nShift % ::nItemSize )
-            IF y1 > 0; y1 := ::nItemSize - y1; ENDIF
-            yPos -= y1
-            IF yPos > 0
-               lRedraw := ( ::nOver != Int( yPos / ::nItemSize ) + ::nFirst ) .AND. !Empty( ::aItemStyle[2] )
-               ::nOver := Int( yPos / ::nItemSize ) + ::nFirst
-            ENDIF
+         IF ::lCaptured
+            ::Drag( xPos, yPos )
          ELSE
+            IF ::lVertical
+               y1 := Int( ::nShift % ::nItemSize )
+               IF y1 > 0; y1 := ::nItemSize - y1; ENDIF
+               yPos -= y1
+               IF yPos > 0
+                  lRedraw := ( ::nOver != Int( yPos / ::nItemSize ) + ::nFirst ) .AND. !Empty( ::aItemStyle[2] )
+                  ::nOver := Int( yPos / ::nItemSize ) + ::nFirst
+               ENDIF
+            ELSE
+            ENDIF
          ENDIF
       ENDIF
 
@@ -167,7 +174,7 @@ METHOD Paint() CLASS HLenta
    LOCAL pps := hwg_Definepaintstru()
    LOCAL hDC := hwg_Beginpaint( ::handle, pps )
 #endif
-   LOCAL i, nKol, y1, nCurr, nItemSize := ::nItemSize, oStyle
+   LOCAL i, y1, nCurr, nItemSize := ::nItemSize, oStyle
 
    IF ::bPaint != Nil
       Eval( ::bPaint, Self, hDC )
@@ -184,7 +191,7 @@ METHOD Paint() CLASS HLenta
                ::aItemStyle[1]:Draw( hDC, 0, 0, ::nWidth, y1 )
             ENDIF
             i := 1
-            DO WHILE y1 + nItemSize < ::nHeight .AND. ( nCurr := i + ::nFirst - 1 ) <= Len( ::aItems )
+            DO WHILE y1 + nItemSize <= ::nHeight .AND. ( nCurr := i + ::nFirst - 1 ) <= Len( ::aItems )
                oStyle := Iif( nCurr == ::nSelected .AND. ::aItemStyle[3] != Nil, ::aItemStyle[3], ;
                   Iif( nCurr == ::nOver .AND. ::aItemStyle[2] != Nil, ::aItemStyle[2], ::aItemStyle[1] ) )
                oStyle:Draw( hDC, 0, y1, ::nWidth, y1 + nItemSize )
@@ -224,8 +231,8 @@ METHOD Drag( xPos, yPos ) CLASS HLenta
       ::xPos := xPos; ::yPos := yPos
       IF ::nShift < 0
          ::nShift := 0
-      ELSEIF ::nShift + ::nHeight > Int( Len( ::aItems ) * ::nItemSize )
-         ::nShift := Int( Len( ::aItems ) * ::nItemSize ) - ::nHeight
+      ELSEIF ::nShift + ::nHeight > Int( Len( ::aItems ) * ::nItemSize ) + 2
+         ::nShift := Max( 0, Int( Len( ::aItems ) * ::nItemSize ) - ::nHeight + 2 )
       ENDIF
       ::nFirst := Int( ::nShift/::nItemSize )
       ::nFirst += Iif( ::nShift > ::nFirst * ::nItemSize, 2, 1 )

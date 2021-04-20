@@ -55,6 +55,9 @@ FUNCTION Plug_guitar()
 STATIC FUNCTION guitar_Dlg()
 
    LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLenta1, oLenta2, h
+   LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
+      HStyle():New( { pClr["clr4"], pClr["clr3"] }, 3 ), ;
+      HStyle():New( { pClr["clr2"] }, 3 ) }
    LOCAL bLClick := {||
       LOCAL s, n
       IF oLenta1:nSelected > 0 .AND. oLenta2:nSelected > 0
@@ -81,7 +84,7 @@ STATIC FUNCTION guitar_Dlg()
    ENDIF
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, 400 SIZE 480, 240 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, 400 SIZE 480, 210 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| oDlgGuitar := Nil}
 
    oDlgGuitar:oParent := oMainWindow
@@ -90,13 +93,13 @@ STATIC FUNCTION guitar_Dlg()
       TEXT "" COORS 20 BTN_CLOSE
 
    oLenta1 := HLenta():New( ,, 0, TOPPANE_HEIGHT, 30, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
-      oMainWindow:oFont,,, bLClick,,, aAcco1, 30 )
+      oMainWindow:oFont,,, bLClick,,, aAcco1, 30, aStyle )
 
-   oLenta2 := HLenta():New( ,, oLenta1:nWidth, TOPPANE_HEIGHT, 40, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
-      oMainWindow:oFont,,, bLClick,,, aAcco2, 30 )
+   oLenta2 := HLenta():New( ,, oLenta1:nWidth+2, TOPPANE_HEIGHT, 38, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
+      oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-40, oDlgGuitar:nHeight-TOPPANE_HEIGHT*2 ;
+   @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-40, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
    oPaneGuitar:bPaint := {|| guitar_Paint()}
 /*
