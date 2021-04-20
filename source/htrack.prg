@@ -36,12 +36,12 @@ CLASS VAR winclass INIT "STATIC"
 ENDCLASS
 
 METHOD New( oWndParent, nId, nLeft, nTop, nWidth, nHeight, ;
-            bSize, bDraw, color, bcolor, nSize, oStyle ) CLASS HTrack
+            bSize, bPaint, color, bcolor, nSize, oStyle ) CLASS HTrack
 
    color := Iif( color == Nil, CLR_BLACK, color )
    bColor := Iif( bColor == Nil, CLR_WHITE, bColor )
    ::Super:New( oWndParent, nId, WS_CHILD + WS_VISIBLE + SS_OWNERDRAW, nLeft, nTop, nWidth, nHeight,,, ;
-              bSize, bDraw,, color, bcolor )
+              bSize, bPaint,, color, bcolor )
 
    ::title  := ""
    ::lVertical := ( ::nHeight > ::nWidth )
@@ -104,7 +104,7 @@ METHOD onEvent( msg, wParam, lParam ) CLASS HTrack
 
    RETURN - 1
 
-METHOD Init CLASS HTrack
+METHOD Init() CLASS HTrack
 
    IF ! ::lInit
       ::Super:Init()
@@ -118,23 +118,23 @@ METHOD Init CLASS HTrack
    RETURN Nil
 
 METHOD Paint() CLASS HTrack
-   LOCAL hDC, nHalf, x1, y1
-#ifndef __PLATFORM__UNIX
-   LOCAL pps
-#endif
-   IF ::bPaint != Nil
-      Eval( ::bPaint, Self )
-   ELSE
+
+   LOCAL nHalf, x1, y1
 #ifdef __PLATFORM__UNIX
-      hDC := hwg_Getdc( ::handle )
+   LOCAL hDC := hwg_Getdc( ::handle )
 #else
-      pps := hwg_Definepaintstru()
-      hDC := hwg_Beginpaint( ::handle, pps )
+   LOCAL pps := hwg_Definepaintstru()
+   LOCAL hDC := hwg_Beginpaint( ::handle, pps )
 #endif
 
-      IF ::tColor2 != Nil .AND. ::oPen2 == Nil
-         ::oPen2 := HPen():Add( PS_SOLID, 1, ::tColor2 )
-      ENDIF
+   IF ::tColor2 != Nil .AND. ::oPen2 == Nil
+      ::oPen2 := HPen():Add( PS_SOLID, 1, ::tColor2 )
+   ENDIF
+
+   IF ::bPaint != Nil
+      Eval( ::bPaint, Self, hDC )
+   ELSE
+
       IF ::oStyle == Nil
          hwg_Fillrect( hDC, 0, 0, ::nWidth, ::nHeight, ::brush:handle )
       ELSE
@@ -156,12 +156,11 @@ METHOD Paint() CLASS HTrack
             hwg_Drawline( hDC, x1, ::nCurr-nHalf, x1, ::nTo )
          ENDIF
       ELSE
-         y1 :=Int(::nHeight/2)
+         y1 := Int(::nHeight/2)
          IF ::nCurr - nHalf > ::nFrom
             hwg_Drawline( hDC, ::nFrom, y1, ::nCurr-nHalf, y1 )
          ENDIF
          hwg_Rectangle( hDC, ::nCurr-nHalf, y1-nHalf, ::nCurr+nHalf, y1+nHalf )
-         //hwg_Ellipse( hDC, ::nCurr-nHalf, y1-nHalf, ::nCurr+nHalf, y1+nHalf )
          IF ::nCurr + nHalf < ::nTo
             IF ::oPen2 != Nil
                hwg_Selectobject( hDC, ::oPen2:handle )
@@ -169,21 +168,19 @@ METHOD Paint() CLASS HTrack
             hwg_Drawline( hDC, ::nCurr+nHalf+1, y1, ::nTo, y1 )
          ENDIF
       ENDIF
-
+   ENDIF
 #ifdef __PLATFORM__UNIX
       hwg_Releasedc( ::handle, hDC )
 #else
       hwg_Endpaint( ::handle, pps )
 #endif
-   ENDIF
 
    RETURN Nil
 
 METHOD Drag( xPos, yPos ) CLASS HTrack
-   LOCAL nFrom, nTo, nCurr := ::nCurr
 
-   nFrom := Iif( ::nFrom == Nil, 1, ::nFrom )
-   nTo := Iif( ::nTo == Nil, Iif(::lVertical,::oParent:nWidth-1,::oParent:nHeight-1), ::nTo )
+   LOCAL nCurr := ::nCurr
+
    IF ::lVertical
       ::nCurr := Min( Max( ::nTo, yPos ), ::nFrom )
    ELSE

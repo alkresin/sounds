@@ -1,3 +1,9 @@
+/*
+ * Sounds - musical program for beginners
+ *
+ * Copyright 2021 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 #include "hwgui.ch"
 #ifdef __PLATFORM__UNIX
@@ -59,7 +65,6 @@ STATIC oStyleDarkNormal, oStyleDarkPressed, oStyleDarkOver
 STATIC oStyleWKNormal, oStyleWKPressed, oStyleWKOver, oStyleDisabled
 STATIC oStyleBKNormal, oStyleBKPressed, oStyleBKOver
 
-STATIC pClr
 STATIC oPenGrid, oPenRed, oPen2, oBrushCursor, oBrushRange
 STATIC oclef1, oclef2, oBemol, oDiez, oBekar
 STATIC oNote1, oNote2, oNote4, oNote8, oNote16, oNote32, oNote2d, oNote4d, oNote8d, oNote16d, oNote32d
@@ -84,7 +89,7 @@ STATIC aMetres := { "1/2", "1/4", "2/4", "3/4", "4/4", "2/8", "3/8", "4/8", "6/8
 STATIC aDur := { 2048, 1024, 512, 256, 128, 64, 32 }
 STATIC nCurrVol := 1, lStopBtn
 
-MEMVAR oMsg, aMsgs, aPlugMenu, bPlugNote
+MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote
 
 FUNCTION Main
 
@@ -94,7 +99,7 @@ FUNCTION Main
       hwg_Drawtransparentbitmap( hDC, oBmpAudio:handle, 8, Int( (oPaneHea:nHeight-oBmpAudio:nHeight)/2 ), CLR_WHITE )
       RETURN .T.
    }
-   PUBLIC oMsg, aPlugMenu := {}, bPlugNote
+   PUBLIC oMsg, pClr, aPlugMenu := {}, bPlugNote
    PUBLIC aMsgs := { "Звуки музыки", "Пиано", "Тест", "Опции", "Помощь", "Выход", ;
    "Октава от", "до", "Интервал не более", "Язык", "Закрыть", "Масштаб:", ;
    "Ok", "Отмена", "Громкость", "Инструмент", "Предыдущая октвва", "Следующая октава", ;
@@ -628,6 +633,23 @@ STATIC FUNCTION SetVP( lShow )
       ENDIF
       RETURN .T.
    }
+   LOCAL bTrPaint := {|o,hDC|
+      LOCAL y1, nHalf
+      hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
+      hwg_Selectobject( hDC, o:oPen1:handle )
+
+      nHalf := Int(o:nSize/2)
+      y1 := Int(o:nHeight/2)
+      IF o:nCurr - nHalf > o:nFrom
+         hwg_Drawline( hDC, o:nFrom, y1, o:nCurr-nHalf, y1 )
+      ENDIF
+      hwg_DrawGradient( hDC, o:nCurr-nHalf+2, y1-nHalf, o:nCurr+nHalf-2, y1+nHalf, 1, {pClr["clr3"]},, { 6,6 } )
+      IF o:nCurr + nHalf < o:nTo
+         hwg_Selectobject( hDC, o:oPen2:handle )
+         hwg_Drawline( hDC, o:nCurr+nHalf+1, y1, o:nTo, y1 )
+      ENDIF
+      RETURN .T.
+   }
    LOCAL bInstr := {||
       LOCAL h := Len( aOggPaths ) * 30, aMenu := Array( Len( aOggPaths ) ), i
       FOR i := 1 TO Len( aOggPaths )
@@ -690,6 +712,7 @@ STATIC FUNCTION SetVP( lShow )
          oTrack:cargo := 1
          oTrack:tColor2 := CLR_LIGHTGRAY_1
          oTrack:bChange := bVolChange
+         oTrack:bPaint := bTrPaint
          oTrack:Value := 0.5
 
          @ oPaneBtn:nWidth/2+100, 2 SAY oSayInstr CAPTION aOggPaths[nCurrInstr,1] OF oPaneBtn SIZE 120, 24 ;
@@ -2636,6 +2659,7 @@ STATIC FUNCTION Player()
    oTrack:cargo := 2
    oTrack:tColor2 := CLR_LIGHTGRAY_1
    oTrack:bChange := oPaneBtn:oTrack:bChange
+   oTrack:bPaint := oPaneBtn:oTrack:bPaint
    oTrack:Value := oPaneBtn:oTrack:Value
 
    @ 300, TOPPANE_HEIGHT+20 CHECKBOX oCheck1 CAPTION " " SIZE 40, 24 ;
@@ -2674,6 +2698,7 @@ STATIC FUNCTION Player()
    oTrack2:cargo := 2
    oTrack2:tColor2 := CLR_LIGHTGRAY_1
    oTrack2:bChange := bMnmVol
+   oTrack2:bPaint := oTrack:bPaint
    oTrack2:Value := 0.5
 
    @ 20, 280 SAY "" SIZE oDlgPlay:nWidth-40, 2

@@ -1,28 +1,16 @@
 /*
- * A plugin for Sounds.
+ * A Recorder plugin for Sounds.
+ *
+ * Copyright 2021 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
  */
 
 #include "hwgui.ch"
 
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0x000000
-#define CLR_RED      0x0000ff
-#define CLR_BROWN_1  0x154780
-#define CLR_BROWN_2  0x6a9cd4
-#define CLR_BROWN_3  0xaad2ff
-#define CLR_BROWN_4  0x396eaa
-#define CLR_BROWN_5  0x9dc7f6
-#define CLR_LIGHTGRAY_1 0xdddddd
-#define CLR_LIGHTGRAY_2 0xaaaaaa
-#define CLR_DARKGRAY_1  0x333333
-#define CLR_DARKGRAY_2  0x666666
-#define CLR_TOPDARK 0x7b7680
-#define CLR_TOPMID  0x5b5760
-#define CLR_DLGBACK 0x154780
-#define CLR_DLGHEA  0x2F343F
 
 #define TOPPANE_HEIGHT  28
-
 
 STATIC bPlugNote_Orig, oDlgReco, oPaneReco
 STATIC oBmpFull, oBmpHalf, oBmpEmpty, oBmpFull_2, oBmpEmpty_2
@@ -47,7 +35,7 @@ STATIC aTable := { { { 0,0,0,0,0,0,0,0,0,0 }, { 1,1,1,1,1,1,1,1,1,1 }, { 1,1,1,1
    { 2,1,1,0,1,1,1,1,0,0 }, { 2,1,1,0,1,1,0,0,0,0 }, { 2,1,0,0,1,1,0,0,0,0 }, { 2,1,0,1,1,0,1,1,1,1 }, ;
    { 2,1,0,1,1,0,1,1,0,0 } } }
 
-MEMVAR oMsg, aPlugMenu, bPlugNote
+MEMVAR oMsg, pClr, aPlugMenu, bPlugNote
 
 FUNCTION Plug_recorder()
 
@@ -87,20 +75,20 @@ STATIC FUNCTION recorder_Dlg()
       oPen := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    ENDIF
 
-   INIT DIALOG oDlgReco TITLE "Recorder" BACKCOLOR CLR_DLGBACK ;
+   INIT DIALOG oDlgReco TITLE "Recorder" BACKCOLOR pClr["dlgback"] ;
       AT oMainWindow:nWidth+10, oMainWindow:nTop SIZE 120, 360 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| oDlgReco := Nil}
 
    oDlgReco:oParent := oMainWindow
 
-   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR CLR_DLGHEA ;
+   ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       TEXT "" COORS 20 BTN_CLOSE
 
    @ 2, TOPPANE_HEIGHT PANEL oPaneReco SIZE oDlgReco:nWidth-4, oDlgReco:nHeight-TOPPANE_HEIGHT*2 ;
-      STYLE SS_OWNERDRAW BACKCOLOR CLR_BROWN_3 ON SIZE {||.t.}
+      STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
    oPaneReco:bPaint := {|| recorder_Paint()}
 
-   oPanel:SetSysbtnColor( CLR_WHITE, CLR_TOPDARK )
+   oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    @ 0, oDlgReco:nHeight-TOPPANE_HEIGHT OWNERBUTTON  SIZE 60, TOPPANE_HEIGHT ;
       TEXT "S" COLOR CLR_WHITE FONT oMainWindow:oPaneTop:aControls[1]:oFont ON CLICK {|| recorder_Type() }

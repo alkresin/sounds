@@ -1,6 +1,9 @@
 /*
+ * Common functions
  *
- */
+ * Copyright 2021 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+*/
 
 #include "hwgui.ch"
 #ifdef __PLATFORM__UNIX
@@ -42,7 +45,9 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
       LOCAL ym, xm, h, w, hl, y1
       IF msg == WM_MOUSEMOVE
          IF !lCapture
-            hwg_SetCapture(oBrw:handle)
+            IF Empty( lScroll )
+               hwg_SetCapture( oBrw:handle )
+            ENDIF
             lCapture := .T.
          ENDIF
          IF Empty( lScroll )
@@ -65,9 +70,10 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
          y1 := oBrw:y1
          ym := hwg_Hiword( lp )
          xm := hwg_Loword( lp )
-         oDlg1:Close()
          IF ym < 0 .OR. ym > h+1 .OR. xm < 0 .OR. xm > w+1
-         ELSE
+            oDlg1:Close()
+         ELSEIF Empty( lScroll )
+            oDlg1:Close()
             ym := Iif( ym < y1, 0, Int( (ym - y1 ) / (hl + 1 ) ) + 1 ) - oBrw:rowPos + oBrw:nCurrent
             IF ym > Len( aChoices )
                ym := Len( aChoices )
@@ -138,7 +144,7 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
             EXIT
          ENDIF
       NEXT
-      oBrw:AddColumn( HColumn():New( ,{ ||oBrw:aArray[oBrw:nCurrent] },"C",8 ) )
+      oBrw:AddColumn( HColumn():New( ,{ ||oBrw:aArray[oBrw:nCurrent] },"C",4 ) )
       IF lbline
          oBrw:aColumns[1]:setPaintCB( PAINT_LINE_ALL, bLine )
       ENDIF
