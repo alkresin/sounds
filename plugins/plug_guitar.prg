@@ -35,12 +35,12 @@ FUNCTION Plug_guitar()
    aAcco2 := {}
    FOR i := 1 TO Len( aAccords )
       s := Left( aAccords[i], 1 )
-      IF Ascan( aAcco1, {|a|a[1] == s} ) == 0
-         AAdd( aAcco1, { s } )
+      IF hb_Ascan( aAcco1, s, .T. ) == 0
+         AAdd( aAcco1, s )
       ENDIF
       s := Substr( aAccords[i], 2 )
-      IF Ascan( aAcco2, {|a|a[1] == s} ) == 0
-         AAdd( aAcco2, { s } )
+      IF hb_Ascan( aAcco2, s, .T. ) == 0
+         AAdd( aAcco2, s )
       ENDIF
    NEXT
 
@@ -56,12 +56,11 @@ STATIC FUNCTION guitar_Dlg()
 
    LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLenta1, oLenta2, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
-      HStyle():New( { pClr["clr4"], pClr["clr3"] }, 3 ), ;
-      HStyle():New( { pClr["clr2"] }, 3 ) }
+      HStyle():New( { pClr["clr2"] }, 3 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
       LOCAL s, n
       IF oLenta1:nSelected > 0 .AND. oLenta2:nSelected > 0
-         s := aAcco1[oLenta1:nSelected,1] + aAcco2[oLenta2:nSelected,1]
+         s := aAcco1[oLenta1:nSelected] + aAcco2[oLenta2:nSelected]
          IF ( n := hb_Ascan( aAccords, s,,, .T. ) ) > 0
             Guitar_Acco_Show( n )
          ENDIF
@@ -84,7 +83,7 @@ STATIC FUNCTION guitar_Dlg()
    ENDIF
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, 400 SIZE 480, 210 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, 400 SIZE 500, 210 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| oDlgGuitar := Nil}
 
    oDlgGuitar:oParent := oMainWindow
@@ -99,14 +98,10 @@ STATIC FUNCTION guitar_Dlg()
       oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-40, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
+   @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-70, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
    oPaneGuitar:bPaint := {|| guitar_Paint()}
-/*
-   @ 0, oDlgGuitar:nHeight-TOPPANE_HEIGHT OWNERBUTTON SIZE 120, TOPPANE_HEIGHT ;
-      TEXT "Accord" COLOR CLR_WHITE FONT oMainWindow:oPaneTop:aControls[1]:oFont ON CLICK {||Guitar_Accords()}
-   ATail( oDlgGuitar:aControls ):aStyle := oMainWindow:oPaneTop:aControls[1]:aStyle
-*/
+
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
    ACTIVATE DIALOG oDlgGuitar NOMODAL
@@ -139,36 +134,37 @@ STATIC FUNCTION guitar_Paint()
    LOCAL pps    := hwg_Definepaintstru()
    LOCAL hDC    := hwg_Beginpaint( o:handle, pps )
 #endif
-   LOCAL x1 := 20, y1 := 20, i, n, nMin, nLad, lBarre, nBarre
+   LOCAL x1 := 30, y1 := 20, i, j, n, nMin, nMax, nLad, lBarre, nBarre
    STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 
    hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
 
    IF nCurrMode == 0
       hwg_Selectobject( hDC, oPen1:handle )
-      hwg_Selectobject( hDC, oFontNote:handle )
+      hwg_Selectobject( hDC, oDlgGuitar:oFont:handle )
       hwg_SetTransparentMode( hDC, .T. )
       FOR i := 1 TO 6
          hwg_Drawline( hDC, x1, y1+(i-1)*20, o:nWidth-10, y1+(i-1)*20 )
-         hwg_Drawtext( hDC, aStrings[i,1], x1-16, y1-8+(i-1)*20, x1, y1+10+(i-1)*20, DT_LEFT )
          IF nCurrNote > 0
             IF nCurrNote >= aStrings[i,2] .AND. nCurrNote <= aStrings[i,2] + 12
                n := nCurrNote - aStrings[i,2]
-               hwg_Fillrect( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, oBrushBlack:handle )
-               hwg_Fillrect( hDC, x1+n*20+1, y1-8+(i-1)*20+1, x1+n*20+24-1, y1+10+(i-1)*20-1, oBrushWhite:handle )
-               //hwg_Rectangle( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20 )
-               hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+1, y1-6+(i-1)*20, x1+n*20+24-1, y1+8+(i-1)*20, DT_CENTER )
+               hwg_Fillrect( hDC, x1+n*20, y1-10+(i-1)*20, x1+n*20+24, y1+12+(i-1)*20, oBrushBlack:handle )
+               hwg_Fillrect( hDC, x1+n*20+1, y1-10+(i-1)*20+1, x1+n*20+24-1, y1+12+(i-1)*20-1, oBrushWhite:handle )
+               hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+1, y1-8+(i-1)*20, x1+n*20+24-1, y1+10+(i-1)*20, DT_CENTER+DT_VCENTER )
             ELSE
                n := Int( Abs( nCurrNote - aStrings[i,2] ) % 12 )
                IF nCurrNote < aStrings[i,2]
                   n := 12 - n
                ENDIF
-               hwg_Fillrect( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20, oBrushBlack:handle )
-               hwg_Fillrect( hDC, x1+n*20+1, y1-8+(i-1)*20+1, x1+n*20+24-1, y1+10+(i-1)*20-1, o:brush:handle )
-               //hwg_Rectangle( hDC, x1+n*20, y1-8+(i-1)*20, x1+n*20+24, y1+10+(i-1)*20 )
-               hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+6, y1-6+(i-1)*20, x1+n*20+22, y1+8+(i-1)*20, DT_CENTER )
+               hwg_Fillrect( hDC, x1+n*20, y1-10+(i-1)*20, x1+n*20+24, y1+12+(i-1)*20, oBrushBlack:handle )
+               hwg_Fillrect( hDC, x1+n*20+1, y1-10+(i-1)*20+1, x1+n*20+24-1, y1+12+(i-1)*20-1, o:brush:handle )
+               hwg_Drawtext( hDC, Ltrim(Str(n)), x1+n*20+6, y1-8+(i-1)*20, x1+n*20+22, y1+10+(i-1)*20, DT_CENTER+DT_VCENTER )
             ENDIF
          ENDIF
+      NEXT
+      hwg_Selectobject( hDC, oFontNote:handle )
+      FOR i := 1 TO 6
+         hwg_Drawtext( hDC, aStrings[i,1], x1-16, y1-8+(i-1)*20, x1, y1+10+(i-1)*20, DT_LEFT )
       NEXT
       hwg_SetTransparentMode( hDC, .F. )
       hwg_Selectobject( hDC, oPen2:handle )
@@ -178,17 +174,29 @@ STATIC FUNCTION guitar_Paint()
       hwg_Selectobject( hDC, oFontNote:handle )
       hwg_SetTransparentMode( hDC, .T. )
       FOR n := 1 TO Len( aCurrAcc )
-         nMin := 99
-         lBarre := .T.; nBarre := 0
+         //hwg_writelog( "---------" )
+         nMin := 99; nMax := 1
+         lBarre := .T.; nBarre := 0; j := 0
          FOR i := 1 TO Len( aCurrAcc[n] )
             nMin := Min( nMin, Iif( (nLad := Val(aCurrAcc[n,i])) == 0, nMin, nLad ) )
+            nMax := Max( nMax, nLad )
             IF aCurrAcc[n,i] == "0"
                lBarre := .F.
             ENDIF
+            IF nLad > 0
+               j ++
+            ENDIF
          NEXT
+         IF nMax <= 4
+            nMin := 1
+         ENDIF
+         IF j <= 4
+            lBarre := .F.
+         ENDIF
+         //hwg_writelog( "nmin: " + ltrim(str(nmin)) + " j: " + ltrim(str(j)) )
          hwg_Selectobject( hDC, oPen1:handle )
          FOR i := 1 TO LAD_KOL
-            hwg_Drawtext( hDC, Ltrim(Str(nMin+i-1)), x1-16, y1+i*30-24, x1-2, y1+i*30-6, DT_RIGHT )
+            hwg_Drawtext( hDC, Ltrim(Str(nMin+i-1)), x1-20, y1+i*30-24, x1-4, y1+i*30-6, DT_LEFT )
             hwg_Drawline( hDC, x1, y1+i*30, x1+100, y1+i*30 )
          NEXT
          FOR i := 1 TO 6
@@ -203,6 +211,7 @@ STATIC FUNCTION guitar_Paint()
                   nLad := Val( aCurrAcc[n,i] ) - nMin
                   IF lBarre .AND. nLad == 0
                      nBarre := i
+                     //hwg_writelog( "  " + aCurrAcc[n,i] + " " + ltrim(str(i)) )
                   ELSE
                      hwg_drawGradient( hDC, x1+(6-i)*20-8, y1+nLad*30+8, x1+(6-i)*20+8, y1+nLad*30+24, 1, ;
                         aGradient,, {8,8,8,8} )
@@ -211,7 +220,7 @@ STATIC FUNCTION guitar_Paint()
             ENDIF
          NEXT
          IF nBarre > 0
-            hwg_drawGradient( hDC, x1+(6-nBarre)*20-8, y1+nLad*30+8, x1+5*20+8, y1+nLad*30+24, 1, ;
+            hwg_drawGradient( hDC, x1+(6-nBarre)*20-8, y1+8, x1+5*20+8, y1+24, 1, ;
                aGradient,, {8,8,8,8} )
          ENDIF
          hwg_Selectobject( hDC, oPen2:handle )
@@ -228,29 +237,7 @@ STATIC FUNCTION guitar_Paint()
 #endif
 
    RETURN Nil
-/*
-STATIC FUNCTION Guitar_Accords()
 
-   LOCAL i
-   LOCAL x1, y1
-#ifndef __PLATFORM__UNIX
-   LOCAL aCoors1 := hwg_GetWindowRect( oDlgGuitar:oParent:handle )
-   LOCAL aCoors2 := hwg_GetWindowRect( oDlgGuitar:handle )
-#endif
-
-#ifdef __PLATFORM__UNIX
-   x1 := oDlgGuitar:nLeft-oDlgGuitar:oParent:nLeft
-   y1 := oDlgGuitar:nTop-oDlgGuitar:oParent:nTop+oDlgGuitar:nHeight-TOPPANE_HEIGHT-120
-#else
-   x1 := aCoors2[1] - aCoors1[1]; y1 := aCoors2[2] - aCoors1[2] + oDlgGuitar:nHeight-TOPPANE_HEIGHT-120
-#endif
-
-   IF ( i := FileMenu( x1, y1, 120, 120,,,, aAccords,, .T. ) ) > 0
-      Guitar_Acco_Show( i )
-   ENDIF
-
-   RETURN Nil
-*/
 STATIC FUNCTION Guitar_Acco_Show( n )
 
    LOCAL i, s

@@ -47,7 +47,6 @@
 REQUEST HB_CODEPAGE_UTF8
 REQUEST HB_CODEPAGE_RU1251
 REQUEST HB_STRTOUTF8, HB_TRANSLATE
-REQUEST HLENTA
 
 STATIC aOggPaths := {}, nCurrInstr := 1
 STATIC cFileHis
@@ -61,7 +60,7 @@ STATIC oScore, lScoreLong := .F., oPaneScore
 STATIC oMainWindow, oDlgEdi := Nil, oDlgPlay := Nil
 STATIC oPaneHea, oPaneTop, oPaneNote, oPaneVP, oPaneBtn, oPaneTst1, oPaneTst2, oPaneTst3, oPaneTst5, oPaneTstRes
 STATIC oFontWnd, oFontHea, oFontMenu, oFontBold, oFontMetre
-STATIC aStyleW, aStyleB, aStyleDisabled, aStyleBtn
+STATIC aStyleW, aStyleB, aStyleDisabled, aStyleBtn, aStyleLenta
 STATIC oStyleDarkNormal, oStyleDarkPressed, oStyleDarkOver
 STATIC oStyleWKNormal, oStyleWKPressed, oStyleWKOver, oStyleDisabled
 STATIC oStyleBKNormal, oStyleBKPressed, oStyleBKOver
@@ -220,6 +219,8 @@ STATIC FUNCTION SetStyles()
 
    aStyleBtn := { HStyle():New( { pClr["clr5"], pClr["clr3"] }, 1 ), ;
       HStyle():New( { pClr["clr5"], pClr["clr3"] }, 2 ) }
+   aStyleLenta := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 1 ), ;
+      HStyle():New( { pClr["clr2"] }, 1 ) }
 
    oPenGrid := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    oPenRed := HPen():Add( PS_SOLID, 2, CLR_RED )
@@ -2717,7 +2718,7 @@ STATIC FUNCTION Player()
 
 STATIC FUNCTION NoteEditor()
 
-   LOCAL oPanel, oCheck1, oCombo1, oCombo2
+   LOCAL oPanel, oCheck1, oCombo1, oCombo2, oLenta
    LOCAL n1 := Ascan( aMetres, Ltrim(Str(oScore:aMetre[1]))+'/'+Ltrim(Str(oScore:aMetre[2])) )
    LOCAL n2 := Ascan( aKeySign, Ltrim(Str(oScore:nKey)) )
    LOCAL bInsPau := {||
@@ -2785,7 +2786,7 @@ STATIC FUNCTION NoteEditor()
       RETURN Nil
    ENDIF
 
-   INIT DIALOG oDlgEdi TITLE "Notes Editor" BACKCOLOR pClr["clr2"] ;
+   INIT DIALOG oDlgEdi TITLE "Notes Editor" BACKCOLOR pClr["dlgback"] ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 360, 340 FONT oFontWnd ;
       STYLE WND_NOTITLE + WND_NOSIZEBOX ON EXIT {|| oDlgEdi:= Nil}
 
@@ -2802,38 +2803,15 @@ STATIC FUNCTION NoteEditor()
       TOOLTIP aMsgs[57]
    ATail(oDlgEdi:aControls):aStyle := aStyleBtn
 
-   @ 20, 80 SAY aMsgs[55] SIZE 140, 22 COLOR CLR_WHITE TRANSPARENT
-   RADIOGROUP
-   @ 24,104 RADIOBUTTON "1" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(1)}
-   ATail(oDlgEdi:aControls):cargo := 1
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 84,104 RADIOBUTTON "1/2" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(2)}
-   ATail(oDlgEdi:aControls):cargo := 2
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 144,104 RADIOBUTTON "1/4" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(3)}
-   ATail(oDlgEdi:aControls):cargo := 3
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 204,104 RADIOBUTTON "1/8" SIZE 60, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(4)}
-   ATail(oDlgEdi:aControls):cargo := 4
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 264,104 RADIOBUTTON "1/16" SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(5)}
-   ATail(oDlgEdi:aControls):cargo := 5
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlgEdi:aControls):handle, CLR_WHITE, 1 )
-#endif
-   END RADIOGROUP SELECTED 1
+   @ 20, 80 SAY aMsgs[55]+":" SIZE 140, 24 COLOR CLR_WHITE TRANSPARENT
 
-   @ 30, 130 CHECKBOX oCheck1 CAPTION "  x 1.5" SIZE 100, 24 ;
-      COLOR CLR_WHITE BACKCOLOR pClr["clr2"] ON CLICK {||SetDuration(oCheck1:Value)}
-   ATail(oDlgEdi:aControls):cargo := 1.5
+   @ oDlgEdi:nWidth-120, 80 CHECKBOX oCheck1 CAPTION "  x 1.5" SIZE 100, 24 ;
+      COLOR CLR_WHITE BACKCOLOR pClr["dlgback"] ON CLICK {||SetDuration(oCheck1:Value)}
+
+   oLenta := HLenta():New( ,, 24, 110, 300, 26, oFontWnd,,, {|o|SetDuration(o:nSelected)},,, ;
+      { "1","1/2","1/4","1/8","1/16" }, 60, aStyleLenta )
+   hwg_SetCtrlName( oLenta, "OLENTA" )
+   oLenta:Value := 1
 
    @ 20, 170 OWNERBUTTON SIZE 30, 28 ;
       BITMAP "p1" FROM RESOURCE TRANSPARENT COLOR CLR_WHITE ;
@@ -2898,25 +2876,15 @@ STATIC FUNCTION SetDuration( n )
 
 STATIC FUNCTION SetDlgEdi()
 
-   LOCAL ac, i, n, l, nr := 0
+   LOCAL n
 
    IF Empty( oDlgEdi ) .OR. oScore:nCurr == 0 .OR. oScore:nCurr > Len( oScore:aNotes )
       RETURN Nil
    ENDIF
 
    n := Int( oScore:aNotes[oScore:nCurr,2] )
-   l := ( oScore:aNotes[oScore:nCurr,2] - n == 0.5 )
-   ac := oDlgEdi:aControls
-
-   FOR i := 1 TO Len( ac )
-      IF Valtype( ac[i]:cargo ) == "N"
-         IF ac[i]:cargo == n
-            ac[i]:value := .T.
-         ELSEIF ac[i]:cargo == 1.5
-            ac[i]:value := l
-         ENDIF
-      ENDIF
-   NEXT
+   oDlgEdi:oCheck1:Value := ( oScore:aNotes[oScore:nCurr,2] - n == 0.5 )
+   oDlgEdi:oLenta:Value := n
 
    RETURN Nil
 
@@ -3145,8 +3113,13 @@ STATIC FUNCTION ScorePage( n, lNoChangeCurr )
 
 STATIC FUNCTION Options()
 
-   LOCAL oDlg, oPanel, oGet1
+   LOCAL oDlg, oPanel, oGet1, oLenta1, oLenta2
    LOCAL nLang := Ascan( aLangs, cLanguage ) , nz := nZoom, lUpd := .F.
+   LOCAL arr1 := Array( Len( aLangs ) ), i
+
+   FOR i := 1 TO Len( arr1 )
+      arr1[i] := hwg_Left( aLangs[i], 3 )
+   NEXT
 
    INIT DIALOG oDlg TITLE "Options" ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 400, 280 ;
@@ -3158,23 +3131,16 @@ STATIC FUNCTION Options()
       FONT oFontHea TEXT aMsgs[4] COORS 20 BTN_CLOSE
 
    @ 20, 50 SAY aMsgs[10] SIZE 160, 22 COLOR CLR_WHITE TRANSPARENT
-   @ 180, 50 GET COMBOBOX oGet1 VAR nLang ITEMS aLangs SIZE 140, 28 BACKCOLOR pClr["clr5"]
+   //@ 180, 50 GET COMBOBOX oGet1 VAR nLang ITEMS aLangs SIZE 140, 28 BACKCOLOR pClr["clr5"]
+   oLenta1 := HLenta():New( ,, 140, 48, Min( 180,60*Len(aLangs) ), 28, oFontWnd,,, ;
+      {|o|nLang:=o:nSelected},,, arr1, 60, aStyleLenta )
+   oLenta1:Value := nLang
 
    @ 20, 90 SAY aMsgs[12] SIZE 100, 22 COLOR CLR_WHITE TRANSPARENT
-   GET RADIOGROUP nz
-   @ 140,90 RADIOBUTTON "1" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 200,90 RADIOBUTTON "2" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 260,90 RADIOBUTTON "3" SIZE 50, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
-#endif
-   END RADIOGROUP
+
+   oLenta2 := HLenta():New( ,, 140, 88, 150, 28, oFontWnd,,, {|o|nz:=o:nSelected},,, ;
+      { "1","2","3" }, 50, aStyleLenta )
+   oLenta2:Value := nz
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
