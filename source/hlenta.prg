@@ -25,8 +25,9 @@ CLASS VAR winclass INIT "PANEL"
    DATA aItems
    DATA nItemSize
    DATA aItemStyle
-   DATA oFont
-   DATA lPressed    INIT .F.
+   DATA oFont, oPen
+   DATA lDrawNext    INIT .T.
+   DATA lPressed     INIT .F.
    DATA lMoved       INIT .F.
    DATA nFirst       INIT 1
    DATA nSelected    INIT 0
@@ -63,6 +64,7 @@ METHOD New( oWndParent, nId, nLeft, nTop, nWidth, nHeight, oFont, ;
    ::aItemStyle := Iif( Empty(aItemStyle), { HStyle():New( { CLR_WHITE, CLR_GRAY_1 }, 3 ), ;
       HStyle():New( { CLR_GRAY_2 }, 3 ) }, aItemStyle )
    ::nItemSize := nItemSize
+   ::oPen := HPen():Add( PS_SOLID, 1, color )
 
    ::Activate()
 
@@ -168,7 +170,7 @@ METHOD Paint() CLASS HLenta
    LOCAL pps := hwg_Definepaintstru()
    LOCAL hDC := hwg_Beginpaint( ::handle, pps )
 #endif
-   LOCAL i, y1, nCurr, nItemSize := ::nItemSize, oStyle
+   LOCAL i, y1, ob, nCurr, nItemSize := ::nItemSize, oStyle, cText
    LOCAL lVertical := ::lVertical, l1
    LOCAL nW := Iif( ::lVertical, ::nWidth, ::nHeight ), nLength := Iif( ::lVertical, ::nHeight, ::nWidth )
    LOCAL aItemStyle := ::aItemStyle
@@ -196,18 +198,29 @@ METHOD Paint() CLASS HLenta
          DO WHILE y1 + nItemSize <= nLength .AND. ( nCurr := i + ::nFirst - 1 ) <= Len( ::aItems )
             oStyle := Iif( nCurr == ::nSelected .AND. lStyleSele, aItemStyle[2], ;
                Iif( nCurr == ::nOver .AND. lStyleOver, aItemStyle[3], aItemStyle[1] ) )
+            cText := Iif( l1,::aItems[nCurr,1],::aItems[nCurr] )
             IF lVertical
                oStyle:Draw( hDC, 0, y1, nW, y1 + nItemSize )
-               hwg_Settransparentmode( hDC, .T. )
-               hwg_Drawtext( hDC, Iif( l1,::aItems[nCurr,1],::aItems[nCurr] ), 4, y1+4, nW-4, y1+nItemSize-4, ;
-                  DT_LEFT + DT_VCENTER + DT_SINGLELINE )
+               IF !Empty( cText )
+                  hwg_SetTextColor( hDC, ::tcolor )
+                  hwg_Settransparentmode( hDC, .T. )
+                  hwg_Drawtext( hDC, cText, 4, y1+4, nW-4, y1+nItemSize-4, ;
+                     DT_LEFT + DT_VCENTER + DT_SINGLELINE )
+               ENDIF
             ELSE
                oStyle:Draw( hDC, y1, 0, y1 + nItemSize, nW )
-               hwg_Settransparentmode( hDC, .T. )
-               hwg_Drawtext( hDC, Iif( l1,::aItems[nCurr,1],::aItems[nCurr] ), y1+4, 4, y1+nItemSize-4, nW-4, ;
-                  DT_CENTER + DT_VCENTER + DT_SINGLELINE )
+               IF !Empty( cText )
+                  hwg_SetTextColor( hDC, ::tcolor )
+                  hwg_Settransparentmode( hDC, .T. )
+                  hwg_Drawtext( hDC, cText, y1+4, 4, y1+nItemSize-4, nW-4, ;
+                     DT_CENTER + DT_VCENTER + DT_SINGLELINE )
+               ENDIF
             ENDIF
             hwg_Settransparentmode( hDC, .F. )
+            IF l1 .AND. Len(::aItems[nCurr]) > 1 .AND. !Empty( ob := ::aItems[nCurr,2] )
+               ob:Draw( hDC, Int( (nW - ob:nWidth)/2 ), Int( (nItemSize - ob:nHeight)/2 ), ;
+                  ob:nWidth, ob:nHeight )
+            ENDIF
             y1 += nItemSize
             i ++
          ENDDO
@@ -216,6 +229,32 @@ METHOD Paint() CLASS HLenta
                aItemStyle[1]:Draw( hDC, 0, y1, nW, nLength )
             ELSE
                aItemStyle[1]:Draw( hDC, y1, 0, nLength, nW )
+            ENDIF
+         ENDIF
+         IF ::lDrawNext
+            hwg_Selectobject( hDC, ::oPen:handle )
+            i := Int( nw/2 )
+            IF ::nShift > 0
+               IF lVertical
+                  hwg_Rectangle( hDC, i-1, 1, i, 2 )
+                  hwg_Rectangle( hDC, i-7, 1, i-6, 2 )
+                  hwg_Rectangle( hDC, i+6, 1, i+7, 2 )
+               ELSE
+                  hwg_Rectangle( hDC, 1, i-1, 2, i )
+                  hwg_Rectangle( hDC, 1, i-7, 2, i-6 )
+                  hwg_Rectangle( hDC, 1, i+6, 2, i+7 )
+               ENDIF
+            ENDIF
+            IF nCurr < Len( ::aItems )
+               IF lVertical
+                  hwg_Rectangle( hDC, i-1, nLength-3, i, nLength-2 )
+                  hwg_Rectangle( hDC, i-7, nLength-3, i-6, nLength-2 )
+                  hwg_Rectangle( hDC, i+6, nLength-3, i+7, nLength-2 )
+               ELSE
+                  hwg_Rectangle( hDC, nLength-1, i-1, nLength-3, i )
+                  hwg_Rectangle( hDC, nLength-1, i-7, nLength-3, i-6 )
+                  hwg_Rectangle( hDC, nLength-1, i+6, nLength-3, i+7 )
+               ENDIF
             ENDIF
          ENDIF
       ENDIF

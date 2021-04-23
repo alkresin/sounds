@@ -9,6 +9,7 @@
 
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0x000000
+#define CLR_LIGHTGRAY_2 0xaaaaaa
 
 #define TOPPANE_HEIGHT  28
 
@@ -56,7 +57,7 @@ STATIC FUNCTION guitar_Dlg()
 
    LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLenta1, oLenta2, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
-      HStyle():New( { pClr["clr2"] }, 3 ), HStyle():New( { pClr["clr4"] }, 3 ) }
+      HStyle():New( { pClr["clr2"] }, 3,, 1, CLR_LIGHTGRAY_2 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
       LOCAL s, n
       IF oLenta1:nSelected > 0 .AND. oLenta2:nSelected > 0

@@ -12,7 +12,7 @@
 #include "inkey.ch"
 #include "hbclass.ch"
 
-#define APP_VERSION  "1.1"
+#define APP_VERSION  "1.2"
 
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0x000000
@@ -220,7 +220,7 @@ STATIC FUNCTION SetStyles()
    aStyleBtn := { HStyle():New( { pClr["clr5"], pClr["clr3"] }, 1 ), ;
       HStyle():New( { pClr["clr5"], pClr["clr3"] }, 2 ) }
    aStyleLenta := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 1 ), ;
-      HStyle():New( { pClr["clr2"] }, 1 ) }
+      HStyle():New( { pClr["clr2"] }, 1,, 1, CLR_LIGHTGRAY_2 ) }
 
    oPenGrid := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    oPenRed := HPen():Add( PS_SOLID, 2, CLR_RED )
