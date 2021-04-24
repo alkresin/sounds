@@ -135,7 +135,7 @@ STATIC FUNCTION guitar_Paint()
    LOCAL pps    := hwg_Definepaintstru()
    LOCAL hDC    := hwg_Beginpaint( o:handle, pps )
 #endif
-   LOCAL x1 := 30, y1 := 20, i, j, n, nMin, nMax, nLad, lBarre, nBarre
+   LOCAL x1 := 30, y1 := 20, i, n, nMin, nMax, nLad, nBarre, nBarreLast
    STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 
    hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
@@ -177,24 +177,19 @@ STATIC FUNCTION guitar_Paint()
       FOR n := 1 TO Len( aCurrAcc )
          //hwg_writelog( "---------" )
          nMin := 99; nMax := 1
-         lBarre := .T.; nBarre := 0; j := 0
+         nBarre := 0; nBarreLast := 0
          FOR i := 1 TO Len( aCurrAcc[n] )
-            nMin := Min( nMin, Iif( (nLad := Val(aCurrAcc[n,i])) == 0, nMin, nLad ) )
-            nMax := Max( nMax, nLad )
-            IF aCurrAcc[n,i] == "0"
-               lBarre := .F.
-            ENDIF
-            IF nLad > 0
-               j ++
+            IF Left( aCurrAcc[n,i],1 ) == "B"
+               nBarre := Val( Substr(aCurrAcc[n,i],2) )
+            ELSE
+               nMin := Min( nMin, Iif( (nLad := Val(aCurrAcc[n,i])) == 0, nMin, nLad ) )
+               nMax := Max( nMax, nLad )
             ENDIF
          NEXT
          IF nMax <= 4
             nMin := 1
          ENDIF
-         IF j <= 4
-            lBarre := .F.
-         ENDIF
-         //hwg_writelog( "nmin: " + ltrim(str(nmin)) + " j: " + ltrim(str(j)) )
+         //hwg_writelog( "nmin: " + ltrim(str(nmin)) + " nBarre: " + ltrim(str(nBarre)) )
          hwg_Selectobject( hDC, oPen1:handle )
          FOR i := 1 TO LAD_KOL
             hwg_Drawtext( hDC, Ltrim(Str(nMin+i-1)), x1-20, y1+i*30-24, x1-4, y1+i*30-6, DT_LEFT )
@@ -203,26 +198,27 @@ STATIC FUNCTION guitar_Paint()
          FOR i := 1 TO 6
             //hwg_Selectobject( hDC, oPen1:handle )
             hwg_Drawline( hDC, x1+(i-1)*20, y1, x1+(i-1)*20, y1+120 )
-            IF i > Len( aCurrAcc[n] ) .OR. aCurrAcc[n,i] == 'X'
+            IF i > Len( aCurrAcc[n] ) .OR. aCurrAcc[n,i] > '9'
                hwg_Drawtext( hDC, 'X', x1+(6-i)*20-6, 2, x1+(6-i)*20+8, y1, DT_LEFT )
             ELSE
                IF aCurrAcc[n,i] == '0'
                   hwg_Drawtext( hDC, 'O', x1+(6-i)*20-6, 2, x1+(6-i)*20+8, y1, DT_LEFT )
                ELSE
-                  nLad := Val( aCurrAcc[n,i] ) - nMin
-                  IF lBarre .AND. nLad == 0
-                     nBarre := i
+                  nLad := Val( aCurrAcc[n,i] )
+                  IF nBarre == nLad
+                     nBarreLast := i
                      //hwg_writelog( "  " + aCurrAcc[n,i] + " " + ltrim(str(i)) )
                   ELSE
+                     nLad -= nMin
                      hwg_drawGradient( hDC, x1+(6-i)*20-8, y1+nLad*30+8, x1+(6-i)*20+8, y1+nLad*30+24, 1, ;
                         aGradient,, {8,8,8,8} )
                   ENDIF
                ENDIF
             ENDIF
          NEXT
-         IF nBarre > 0
-            hwg_drawGradient( hDC, x1+(6-nBarre)*20-8, y1+8, x1+5*20+8, y1+24, 1, ;
-               aGradient,, {8,8,8,8} )
+         IF nBarreLast > 0
+            hwg_drawGradient( hDC, x1+(6-nBarreLast)*20-8, y1+(nBarre-nMin)*30+8, ;
+               x1+5*20+8, y1+(nBarre-nMin)*30+24, 1, aGradient,, {8,8,8,8} )
          ENDIF
          hwg_Selectobject( hDC, oPen2:handle )
          hwg_Drawline( hDC, x1, y1, x1+100, y1 )
