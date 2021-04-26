@@ -30,8 +30,6 @@ FUNCTION Plug_guitar()
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
 
    Guitar_ReadIni()
-   //aAcco1 := Array( Len( aAccords ), 1 )
-   //aAcco2 := Array( Len( aAccords ), 1 )
    aAcco1 := {}
    aAcco2 := {}
    FOR i := 1 TO Len( aAccords )

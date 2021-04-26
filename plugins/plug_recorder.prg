@@ -64,13 +64,6 @@ STATIC FUNCTION recorder_Dlg()
          oBmpFull_2 := HBitmap():AddString( "c1_2", oBinCnt:Get( "c1_2" ) )
          oBmpEmpty_2 := HBitmap():AddString( "c0_2", oBinCnt:Get( "c0_2" ) )
          oBinCnt:Close()
-         /*
-         oBmpFull := HBitmap():AddFile( cPlugDir + "c1.bmp" )
-         oBmpEmpty := HBitmap():AddFile( cPlugDir + "c0.bmp" )
-         oBmpHalf := HBitmap():AddFile( cPlugDir + "c2.bmp" )
-         oBmpFull_2 := HBitmap():AddFile( cPlugDir + "c1_2.bmp" )
-         oBmpEmpty_2 := HBitmap():AddFile( cPlugDir + "c0_2.bmp" )
-         */
       ENDIF
       oPen := HPen():Add( PS_SOLID, 1, CLR_BLACK )
    ENDIF
@@ -126,6 +119,7 @@ STATIC FUNCTION recorder_Type()
       oBtn := oDlgReco:aControls[Len(oDlgReco:aControls)-1]
       oBtn:title := aTypes[i]
       oBtn:Refresh()
+      oPaneReco:Refresh()
    ENDIF
 
    RETURN Nil
@@ -151,6 +145,7 @@ STATIC FUNCTION recorder_Appl()
       oBtn := oDlgReco:aControls[Len(oDlgReco:aControls)]
       oBtn:title := Iif( i == 1, "G", "B" )
       oBtn:Refresh()
+      oPaneReco:Refresh()
    ENDIF
 
    RETURN Nil
