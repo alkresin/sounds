@@ -16,7 +16,7 @@
 
 CLASS HLenta INHERIT HControl
 
-CLASS VAR winclass INIT "PANEL"
+CLASS VAR winclass INIT "OWNBTN"
 
 #ifdef __PLATFORM__UNIX
    DATA hBox
@@ -66,6 +66,9 @@ METHOD New( oWndParent, nId, nLeft, nTop, nWidth, nHeight, oFont, ;
    ::nItemSize := nItemSize
    ::oPen := HPen():Add( PS_SOLID, 1, color )
 
+#ifndef __PLATFORM__UNIX
+   hwg_RegOwnBtn()
+#endif
    ::Activate()
 
    RETURN Self
@@ -74,11 +77,7 @@ METHOD Activate() CLASS HLenta
    LOCAL handle := ::oParent:handle
 
    IF !Empty( handle )
-#ifdef __PLATFORM__UNIX
-      ::handle := hwg_Createpanel( Self, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
-#else
-      ::handle := hwg_Createpanel( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
-#endif
+      ::handle := hwg_CreateOwnBtn( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
       ::Init()
    ENDIF
 
