@@ -52,6 +52,7 @@ STATIC aOggPaths := {}, nCurrInstr := 1
 STATIC cFileHis
 STATIC cLanguage := "русский", aLangs, aSuff, cSuffix := "ru", cLangNew
 STATIC nZoom := 1, nZoomNew, nWndWidth, aFontsSiz := { -15, -17, -19 }, aKeySiz := { {28,20}, {32,24,}, {36,28} }
+STATIC nDelayAcc := 80, nDelayArp := 120
 STATIC aSounds, nOctave := 4
 STATIC cMnmFile, mnmSound, lMnm := .F., nMnmVol := 1
 
@@ -141,10 +142,10 @@ FUNCTION Main
    nWndWidth := 120 + (aKeySiz[nZoom,1]+2)*14
 #ifdef __PLATFORM__UNIX
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE
+      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE
 #else
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 0 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE + WND_NOSIZEBOX
+      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE + WND_NOSIZEBOX
 #endif
    ADD HEADER PANEL oPaneHea HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR 0x2F343F ;
       FONT oFontHea TEXT aMsgs[1] COORS 36 BTN_CLOSE BTN_MINIMIZE
@@ -415,6 +416,12 @@ STATIC FUNCTION IniRead()
                      nZoom := 1
                   ENDIF
                ENDIF
+               IF hb_HHasKey( aSect, cTemp := "delayacc" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nDelayAcc := Val( cTemp )
+               ENDIF
+               IF hb_HHasKey( aSect, cTemp := "delayarp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nDelayArp := Val( cTemp )
+               ENDIF
             ENDIF
          ENDIF
       NEXT
@@ -481,6 +488,8 @@ STATIC FUNCTION IniWrite()
    s += Chr(10) + "[OPTIONS]" + Chr(10) + "langs=" + cLangs + Chr(10) + ;
       "suff=" + cSuff + Chr(10) + "lang=" + cLanguage + Chr(10)
    s += "zoom=" + Ltrim(Str(nZoom)) + Chr(10)
+   s += "delayacc=" + Ltrim(Str(nDelayAcc)) + Chr(10) + ;
+      "delayarp=" + Ltrim(Str(nDelayArp)) + Chr(10)
 
    hb_MemoWrit( cFile, s )
 
@@ -1583,13 +1592,13 @@ STATIC FUNCTION PlayNotes( lSele )
                nOrig := arr[1]
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
                   Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), 120, 0 ) )
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
                Play( nOrig )
             ELSE
                pa_SetVolume( aSounds[ nOrig, 1 ], nCurrVol )
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
                   Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), 120, 0 ) )
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
                sf_ChangeData( aSounds[nOrig,1], aSounds[ arr[1], 1 ] )
             ENDIF
          ENDIF
@@ -3436,7 +3445,7 @@ STATIC FUNCTION PlayAccord( arr )
    StopSound( arr[1] )
    sf_SetAccord( aSounds[arr[1],1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
       Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-      Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), 80 )
+      Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), nDelayAcc )
    Play( arr[1] )
 
    RETURN .T.
