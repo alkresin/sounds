@@ -67,7 +67,8 @@ METHOD New( oWndParent, nId, nLeft, nTop, nWidth, nHeight, oFont, ;
    ::oPen := HPen():Add( PS_SOLID, 1, color )
 
 #ifndef __PLATFORM__UNIX
-   hwg_RegOwnBtn()
+   //hwg_RegOwnBtn()
+   hwg_RegPanel()
 #endif
    ::Activate()
 
@@ -77,7 +78,13 @@ METHOD Activate() CLASS HLenta
    LOCAL handle := ::oParent:handle
 
    IF !Empty( handle )
-      ::handle := hwg_CreateOwnBtn( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#ifdef __PLATFORM__UNIX
+      //::handle := hwg_CreateOwnBtn( handle, ::id, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+      ::handle := hwg_CreatePanel( Self, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#else
+      //::handle := hwg_CreateOwnBtn( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+      ::handle := hwg_CreatePanel( handle, ::id, ::style, ::nLeft, ::nTop, ::nWidth, ::nHeight )
+#endif
       ::Init()
    ENDIF
 

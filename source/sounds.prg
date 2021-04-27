@@ -3113,7 +3113,7 @@ STATIC FUNCTION ScorePage( n, lNoChangeCurr )
 
 STATIC FUNCTION Options()
 
-   LOCAL oDlg, oPanel, oGet1, oLenta1, oLenta2
+   LOCAL oDlg, oPanel, oLenta1, oLenta2
    LOCAL nLang := Ascan( aLangs, cLanguage ) , nz := nZoom, lUpd := .F.
    LOCAL arr1 := Array( Len( aLangs ) ), i
 
