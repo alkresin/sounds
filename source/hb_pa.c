@@ -21,7 +21,7 @@ typedef struct
    SNDFILE    *sndFile;
    SNDFILE    *sndFileNew;
    SNDFILE    *sndFileRepl;
-   SNDFILE    *sndAcc1, *sndAcc2, *sndAcc3, *sndAcc4;
+   SNDFILE    *sndAcc1, *sndAcc2, *sndAcc3, *sndAcc4, *sndAcc5;
    SF_INFO     sfInfo;
    int         iAccoDelay;
    int         bPause;
@@ -83,7 +83,7 @@ HB_FUNC( SF_INITDATA )
    data->sndFile = sf_open( hb_parc(1), SFM_READ, &data->sfInfo );
    data->sndFileNew = NULL;
    data->sndFileRepl = NULL;
-   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
+   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = data->sndAcc5 = NULL;
    data->output = NULL;
 
    if( !data->sndFile )
@@ -121,13 +121,15 @@ HB_FUNC( SF_SETACCORD )
    StreamData *data2 = (StreamData *) ( HB_ISNIL(3)? NULL : hb_parptr(3) );
    StreamData *data3 = (StreamData *) ( HB_ISNIL(4)? NULL : hb_parptr(4) );
    StreamData *data4 = (StreamData *) ( HB_ISNIL(5)? NULL : hb_parptr(5) );
+   StreamData *data5 = (StreamData *) ( HB_ISNIL(6)? NULL : hb_parptr(6) );
 
    data->sndAcc1 = (data1)? data1->sndFile : NULL;
    data->sndAcc2 = (data2)? data2->sndFile : NULL;
    data->sndAcc3 = (data3)? data3->sndFile : NULL;
    data->sndAcc4 = (data4)? data4->sndFile : NULL;
+   data->sndAcc5 = (data5)? data4->sndFile : NULL;
    data->bPause = data->bEnd = 0;
-   data->iAccoDelay = HB_ISNUM(6)? hb_parni(6) * data->sfInfo.samplerate / 1000 : 0;
+   data->iAccoDelay = HB_ISNUM(7)? hb_parni(7) * data->sfInfo.samplerate / 1000 : 0;
 }
 
 HB_FUNC( SF_GETVERSION )
@@ -373,6 +375,13 @@ int StreamCallback( const void *input, void *output, unsigned long frameCount,
                sf_read_float( data->sndAcc4, data->output, BUFFER_SIZE * iChannels );
                for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
                   out[i] += data->output[i] * data->fVolume;
+               if( data->sndAcc5 && ( (position = data->position - data->iAccoDelay*5) >= 0 ) )
+               {
+                  sf_seek( data->sndAcc5, position, SF_SEEK_SET );
+                  sf_read_float( data->sndAcc5, data->output, BUFFER_SIZE * iChannels );
+                  for( i = 0; i < BUFFER_SIZE * iChannels; i++ )
+                     out[i] += data->output[i] * data->fVolume;
+               }
             }
          }
       }
@@ -498,7 +507,7 @@ HB_FUNC( PA_STOPSTREAM )
    StreamData *data = (StreamData *) hb_parptr(1);
 
    data->sndFileRepl = data->sndFileNew = NULL;
-   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
+   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = data->sndAcc5 = NULL;
    data->bPause = data->bKeep = 0;
    data->iAccoDelay = 0;
 
@@ -512,7 +521,7 @@ HB_FUNC( PA_ABORTSTREAM )
    StreamData *data = (StreamData *) hb_parptr(1);
 
    data->sndFileRepl = data->sndFileNew = NULL;
-   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
+   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = data->sndAcc5 = NULL;
    data->bPause = data->bKeep = 0;
    data->iAccoDelay = 0;
 
@@ -526,7 +535,7 @@ HB_FUNC( PA_CLOSESTREAM )
    StreamData *data = (StreamData *) hb_parptr(1);
 
    data->sndFileRepl = data->sndFileNew = NULL;
-   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = NULL;
+   data->sndAcc1 = data->sndAcc2 = data->sndAcc3 = data->sndAcc4 = data->sndAcc5 = NULL;
    data->bPause = data->bKeep = 0;
    data->iAccoDelay = 0;
 

@@ -52,7 +52,7 @@ STATIC aOggPaths := {}, nCurrInstr := 1
 STATIC cFileHis
 STATIC cLanguage := "русский", aLangs, aSuff, cSuffix := "ru", cLangNew
 STATIC nZoom := 1, nZoomNew, nWndWidth, aFontsSiz := { -15, -17, -19 }, aKeySiz := { {28,20}, {32,24,}, {36,28} }
-STATIC nDelayAcc := 80, nDelayArp := 120
+STATIC nDelayArp := 120
 STATIC aSounds, nOctave := 4
 STATIC cMnmFile, mnmSound, lMnm := .F., nMnmVol := 1
 STATIC hFileMap
@@ -89,9 +89,9 @@ STATIC aIntShort := { "P1", "m2", "M2", "m3", "M3", "P4", "A4", "P5", "m6", "M6"
 STATIC aKeySign := { "0", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "1", "2", "3", "4", "5", "6", "7" }
 STATIC aMetres := { "1/2", "1/4", "2/4", "3/4", "4/4", "2/8", "3/8", "4/8", "6/8", "8/8" }
 STATIC aDur := { 2048, 1024, 512, 256, 128, 64, 32 }
-STATIC nCurrVol := 1, lStopBtn
+STATIC lStopBtn
 
-MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote
+MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
 FUNCTION Main
 
@@ -101,7 +101,7 @@ FUNCTION Main
       hwg_Drawtransparentbitmap( hDC, oBmpAudio:handle, 8, Int( (oPaneHea:nHeight-oBmpAudio:nHeight)/2 ), CLR_WHITE )
       RETURN .T.
    }
-   PUBLIC oMsg, pClr, aPlugMenu := {}, bPlugNote
+   PUBLIC oMsg, pClr, aPlugMenu := {}, bPlugNote, nCurrVol := 1, nDelayAcc := 80
    PUBLIC aMsgs := { "Звуки музыки", "Пиано", "Тест", "Опции", "Помощь", "Выход", ;
    "Октава от", "до", "Интервал не более", "Язык", "Закрыть", "Масштаб:", ;
    "Ok", "Отмена", "Громкость", "Инструмент", "Предыдущая октвва", "Следующая октава", ;
@@ -1614,13 +1614,13 @@ STATIC FUNCTION PlayNotes( lSele )
                nOrig := arr[1]
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
                   Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Nil, Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
                Play( nOrig )
             ELSE
                pa_SetVolume( aSounds[ nOrig, 1 ], nCurrVol )
                sf_SetAccord( aSounds[nOrig,1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
                   Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
+                  Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Nil, Iif( noteCheckAttr( oScore:aNotes[i], "arp" ), nDelayArp, 0 ) )
                sf_ChangeData( aSounds[nOrig,1], aSounds[ arr[1], 1 ] )
             ENDIF
          ENDIF
@@ -3471,7 +3471,7 @@ STATIC FUNCTION PlayAccord( arr )
    StopSound( arr[1] )
    sf_SetAccord( aSounds[arr[1],1], Iif( Len(arr)>1,aSounds[arr[2],1],Nil ), ;
       Iif( Len(arr)>2,aSounds[arr[3],1],Nil ), Iif( Len(arr)>3,aSounds[arr[4],1],Nil ), ;
-      Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), nDelayAcc )
+      Iif( Len(arr)>4,aSounds[arr[5],1],Nil ), Nil, nDelayAcc )
    Play( arr[1] )
 
    RETURN .T.
