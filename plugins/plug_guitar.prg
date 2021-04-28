@@ -20,6 +20,8 @@ STATIC oPen1, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
 STATIC cPlugDir
 STATIC nCurrNote := 0, nCurrMode := 0
 STATIC pAccords, aAccords, aCurrAcc, aAcco1, aAcco2
+STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
+STATIC pSound
 
 MEMVAR oMsg, pClr, aPlugMenu, bPlugNote
 
@@ -83,7 +85,7 @@ STATIC FUNCTION guitar_Dlg()
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
       AT 20, 400 SIZE 500, 210 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
-      ON EXIT {|| oDlgGuitar := Nil}
+      ON EXIT {|| DlgGuitarExit() }
 
    oDlgGuitar:oParent := oMainWindow
 
@@ -100,6 +102,7 @@ STATIC FUNCTION guitar_Dlg()
    @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-70, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
    oPaneGuitar:bPaint := {|| guitar_Paint()}
+   oPaneGuitar:bOther := {|o,msg,wp,lp| Guitar_Pane_Other(o,msg,wp,lp)}
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
@@ -134,7 +137,6 @@ STATIC FUNCTION guitar_Paint()
    LOCAL hDC    := hwg_Beginpaint( o:handle, pps )
 #endif
    LOCAL x1 := 30, y1 := 20, i, n, nMin, nMax, nLad, nBarre, nBarreLast
-   STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 
    hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
 
@@ -252,6 +254,60 @@ STATIC FUNCTION Guitar_Acco_Show( n )
 
    RETURN Nil
 
+STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
+
+   LOCAL x1 := 30, y1 := 20, xm, ym, i, n, cFile
+
+   IF msg == WM_LBUTTONDOWN
+      HB_SYMBOL_UNUSED( o )
+      HB_SYMBOL_UNUSED( wp )
+      xm := hwg_Loword( lp )
+      ym := hwg_Hiword( lp )
+      IF !Empty( pSound )
+         pa_AbortStream( pSound )
+         pSound := Nil
+      ENDIF
+      IF nCurrMode == 0
+         FOR i := 1 TO 6
+            IF nCurrNote > 0
+               IF nCurrNote >= aStrings[i,2] .AND. nCurrNote <= aStrings[i,2] + 12
+                  n := nCurrNote - aStrings[i,2]
+               ELSE
+                  n := Int( Abs( nCurrNote - aStrings[i,2] ) % 12 )
+                  IF nCurrNote < aStrings[i,2]
+                     n := 12 - n
+                  ENDIF
+               ENDIF
+               IF xm > x1+n*20 .AND. xm < x1+n*20+24 .AND. ym > y1-10+(i-1)*20 .AND. ym < y1+12+(i-1)*20
+                  cFile := hb_DirBase() + "Sounds_guitar_ogg" + hb_ps() + "g" + ;
+                     ltrim(str(i)) + "_" + PAdl( Ltrim(Str(n)),2,"0" ) + "_" + ;
+                     Note2Text( aStrings[i,2] + n ) + ".ogg"
+                  IF File( cFile ) .AND. ( pSound := sf_initData( cFile ) ) != Nil
+                     pa_OpenStream( pSound )
+                     pa_StartStream( pSound )
+                  ENDIF
+               ENDIF
+            ENDIF
+         NEXT
+
+      ELSEIF nCurrMode == 1
+         FOR i := 1 TO Len( aCurrAcc )
+            IF xm > x1+(i-1)*140 .AND. xm < x1+(i-1)*140+100 .AND. ym > y1 .AND. ym < y1+120
+               FOR n := Len( aCurrAcc[i] ) TO 1 STEP -1
+                  IF Left( aCurrAcc[i,n],1 ) <= '9'
+                     cFile := hb_DirBase() + "Sounds_guitar_ogg" + hb_ps() + "g" + ;
+                        ltrim(str(n)) + "_" + PAdl( aCurrAcc[i,n],2,"0" ) + "_" + ;
+                        Note2Text( aStrings[i,2] + Val(aCurrAcc[i,n]) ) + ".ogg"
+                        //hwg_writelog(cFile)
+                  ENDIF
+               NEXT
+            ENDIF
+         NEXT
+      ENDIF
+   ENDIF
+
+   RETURN -1
+
 STATIC FUNCTION Guitar_ReadIni()
 
    LOCAL cFile := cPlugDir + "guitar.ini"
@@ -268,3 +324,13 @@ STATIC FUNCTION Guitar_ReadIni()
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION dlgGuitarExit()
+
+   oDlgGuitar := Nil
+   IF !Empty( pSound )
+      pa_AbortStream( pSound )
+      pSound := Nil
+   ENDIF
+
+   RETURN .T.

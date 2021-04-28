@@ -55,6 +55,7 @@ STATIC nZoom := 1, nZoomNew, nWndWidth, aFontsSiz := { -15, -17, -19 }, aKeySiz 
 STATIC nDelayAcc := 80, nDelayArp := 120
 STATIC aSounds, nOctave := 4
 STATIC cMnmFile, mnmSound, lMnm := .F., nMnmVol := 1
+STATIC hFileMap
 
 STATIC oScore, lScoreLong := .F., oPaneScore
 
@@ -370,7 +371,7 @@ STATIC FUNCTION SetKeyBoard()
 STATIC FUNCTION IniRead()
 
    LOCAL cFile := hb_DirBase() + "sounds.ini"
-   LOCAL hIni := _iniRead( cFile ), aIni, nSect, aSect, cTemp, i, arr
+   LOCAL hIni := _iniRead( cFile ), aIni, nSect, aSect, cTemp, i, arr, nPos
    LOCAL cLang, crlf := Chr(13)+Chr(10), n
 
    IF !Empty( hIni )
@@ -422,6 +423,15 @@ STATIC FUNCTION IniRead()
                IF hb_HHasKey( aSect, cTemp := "delayarp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nDelayArp := Val( cTemp )
                ENDIF
+               IF hb_HHasKey( aSect, cTemp := "filemap" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  arr:= hb_aTokens( cTemp, ",", .T. )
+                  hFileMap := hb_Hash()
+                  FOR i := 1 TO Len(arr)
+                     IF ( nPos := At( "=>", arr[i] ) ) > 0
+                        hFileMap[AllTrim(Left(arr[i],nPos-1))] := AllTrim(Substr(arr[i],nPos+2))
+                     ENDIF
+                  NEXT
+               ENDIF
             ENDIF
          ENDIF
       NEXT
@@ -463,7 +473,7 @@ STATIC FUNCTION IniRead()
 STATIC FUNCTION IniWrite()
 
    LOCAL cFile := hb_DirBase() + "sounds.ini"
-   LOCAL s := "[PATHS]" + Chr(10), i, cLangs := "", cSuff := ""
+   LOCAL s := "[PATHS]" + Chr(10), i, cLangs := "", cSuff := "", arr
 
    FOR i := 1 TO Len( aOggPaths )
       s += "instrument_" + Ltrim(Str(i)) + '=' + aOggPaths[i,1] + ';' + ;
@@ -490,6 +500,14 @@ STATIC FUNCTION IniWrite()
    s += "zoom=" + Ltrim(Str(nZoom)) + Chr(10)
    s += "delayacc=" + Ltrim(Str(nDelayAcc)) + Chr(10) + ;
       "delayarp=" + Ltrim(Str(nDelayArp)) + Chr(10)
+   IF !Empty( hFileMap )
+      arr := hb_HKeys( hFileMap )
+      s += "filemap="
+      FOR i := 1 TO Len( arr )
+         s += Iif( i==1,"","," ) + arr[i] + "=>" + hFileMap[arr[i]]
+      NEXT
+      s += + Chr(10)
+   ENDIF
 
    hb_MemoWrit( cFile, s )
 
@@ -828,10 +846,14 @@ STATIC FUNCTION SetPianoKeys()
 
 STATIC FUNCTION CheckPianoKeys()
 
-   LOCAL i
+   LOCAL i, cFile
 
    FOR i := 1 TO Len( aSounds )
-      aSounds[i,3] := File( aOggPaths[nCurrInstr,3] + aOggPaths[nCurrInstr,2] + Note2Text( i ) + ".ogg" )
+      cFile := aOggPaths[nCurrInstr,2] + Note2Text( i )
+      IF !Empty( hFileMap ) .AND. hb_HHasKey( hFileMap, cFile )
+         cFile := hFileMap[cFile]
+      ENDIF
+      aSounds[i,3] := File( aOggPaths[nCurrInstr,3] + cFile + ".ogg" )
    NEXT
 
    RETURN NIL
@@ -1671,7 +1693,11 @@ STATIC FUNCTION LoadNote( n )
    LOCAL cFile
 
    IF Empty( aSounds[ n, 1 ] )
-      cFile := aOggPaths[nCurrInstr,3] + aOggPaths[nCurrInstr,2] + Note2Text( n ) + ".ogg"
+      cFile := aOggPaths[nCurrInstr,2] + Note2Text( n )
+      IF !Empty( hFileMap ) .AND. hb_HHasKey( hFileMap, cFile )
+         cFile := hFileMap[cFile]
+      ENDIF
+      cFile := aOggPaths[nCurrInstr,3] + cFile + ".ogg"
       IF ( aSounds[ n, 1 ] := sf_initData( cFile ) ) == Nil
          oMainWindow:oSayNote1:SetText( "Error: " + hb_fnameNameExt( cFile ) )
          RETURN .F.
