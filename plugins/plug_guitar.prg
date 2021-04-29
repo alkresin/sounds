@@ -16,12 +16,13 @@
 #define LAD_KOL   4
 
 STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar
-STATIC oPen1, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
+STATIC oPen1, oPen1W, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
 STATIC cPlugDir
-STATIC nCurrNote := 0, nCurrMode := 0
+STATIC nCurrNote := 0, nCurrMode := 0, nAccSele := 0
 STATIC pAccords, aAccords, aCurrAcc, aAcco1, aAcco2
 STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 STATIC arrSounds[6]
+STATIC cSoundsPath := "Sounds_guitar_ogg"
 
 MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
@@ -50,6 +51,7 @@ FUNCTION Plug_guitar()
       bPlugNote_Orig := bPlugNote
    ENDIF
    bPlugNote := {|n| guitar_Show(n) }
+   cSoundsPath += hb_ps()
 
    RETURN Nil
 
@@ -75,6 +77,7 @@ STATIC FUNCTION guitar_Dlg()
 
    IF Empty( oPen1 )
       oPen1 := HPen():Add( PS_SOLID, 1, CLR_BLACK )
+      oPen1W := HPen():Add( PS_SOLID, 1, CLR_WHITE )
       oPen2 := HPen():Add( PS_SOLID, 2, CLR_BLACK )
       oBrushWhite := HBrush():Add( CLR_WHITE )
       oBrushBlack := HBrush():Add( CLR_BLACK )
@@ -163,6 +166,9 @@ STATIC FUNCTION guitar_Paint()
             ENDIF
          ENDIF
       NEXT
+      IF nCurrNote > 0
+         hwg_Drawtext( hDC, "Click any rectangle to play", 10, o:nHeight-30, o:nWidth-10, o:nHeight-8, DT_CENTER+DT_VCENTER )
+      ENDIF
       hwg_Selectobject( hDC, oFontNote:handle )
       FOR i := 1 TO 6
          hwg_Drawtext( hDC, aStrings[i,1], x1-16, y1-8+(i-1)*20, x1, y1+10+(i-1)*20, DT_LEFT )
@@ -190,14 +196,15 @@ STATIC FUNCTION guitar_Paint()
             nMin := 1
          ENDIF
          //hwg_writelog( "nmin: " + ltrim(str(nmin)) + " nBarre: " + ltrim(str(nBarre)) )
-         hwg_Selectobject( hDC, oPen1:handle )
+         hwg_Selectobject( hDC, Iif( n == nAccSele, oPen1W:handle, oPen1:handle ) )
          FOR i := 1 TO LAD_KOL
             hwg_Drawtext( hDC, Ltrim(Str(nMin+i-1)), x1-20, y1+i*30-24, x1-4, y1+i*30-6, DT_LEFT )
             hwg_Drawline( hDC, x1, y1+i*30, x1+100, y1+i*30 )
          NEXT
          FOR i := 1 TO 6
-            //hwg_Selectobject( hDC, oPen1:handle )
             hwg_Drawline( hDC, x1+(i-1)*20, y1, x1+(i-1)*20, y1+120 )
+         NEXT
+         FOR i := 1 TO 6
             IF i > Len( aCurrAcc[n] ) .OR. aCurrAcc[n,i] > '9'
                hwg_Drawtext( hDC, 'X', x1+(6-i)*20-6, 2, x1+(6-i)*20+8, y1, DT_LEFT )
             ELSE
@@ -224,6 +231,7 @@ STATIC FUNCTION guitar_Paint()
          hwg_Drawline( hDC, x1, y1, x1+100, y1 )
          x1 += 140
       NEXT
+      hwg_Drawtext( hDC, "Click any accord to play", 10, o:nHeight-30, o:nWidth-10, o:nHeight-8, DT_CENTER+DT_VCENTER )
       hwg_SetTransparentMode( hDC, .F. )
    ENDIF
 
@@ -249,6 +257,7 @@ STATIC FUNCTION Guitar_Acco_Show( n )
    FOR i := 1 TO Len( aCurrAcc )
       aCurrAcc[i] := hb_ATokens( aCurrAcc[i],'-' )
    NEXT
+   nAccSele := 0
    oDlgGuitar:oPanel:Refresh()
    oPaneGuitar:Refresh()
 
@@ -276,7 +285,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
                   ENDIF
                ENDIF
                IF xm > x1+n*20 .AND. xm < x1+n*20+24 .AND. ym > y1-10+(i-1)*20 .AND. ym < y1+12+(i-1)*20
-                  cFile := hb_DirBase() + "Sounds_guitar_ogg" + hb_ps() + "g" + ;
+                  cFile := hb_DirBase() + cSoundsPath + "g" + ;
                      ltrim(str(i)) + "_" + PAdl( Ltrim(Str(n)),2,"0" ) + "_" + ;
                      Note2Text( aStrings[i,2] + n ) + ".ogg"
                   IF File( cFile ) .AND. ( arrSounds[1] := sf_initData( cFile ) ) != Nil
@@ -294,7 +303,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
                j := 0
                FOR n := Len( aCurrAcc[i] ) TO 1 STEP -1
                   IF Left( aCurrAcc[i,n],1 ) <= '9'
-                     cFile := hb_DirBase() + "Sounds_guitar_ogg" + hb_ps() + "g" + ;
+                     cFile := hb_DirBase() + cSoundsPath + "g" + ;
                         ltrim(str(n)) + "_" + PAdl( aCurrAcc[i,n],2,"0" ) + "_" + ;
                         Note2Text( aStrings[n,2] + Val(aCurrAcc[i,n]) ) + ".ogg"
                      arrSounds[++j] := sf_initData( cFile )
@@ -306,6 +315,8 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
                pa_SetVolume( arrSounds[1], nCurrVol )
                pa_OpenStream( arrSounds[1] )
                pa_StartStream( arrSounds[1] )
+               nAccSele := i
+               oPaneGuitar:Refresh()
             ENDIF
          NEXT
       ENDIF
