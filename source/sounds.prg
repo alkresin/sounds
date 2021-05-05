@@ -2672,7 +2672,7 @@ STATIC FUNCTION Player()
 
    INIT DIALOG oDlgPlay TITLE "Player" BACKCOLOR pClr["clr2"] ;
       AT Int(oMainWindow:nWidth*0.7), Int(oMainWindow:nHeight*0.6) SIZE 360, 340 FONT oFontWnd STYLE WND_NOTITLE + WND_NOSIZEBOX ;
-      ON EXIT {|| oDlgPlay := Nil}
+      ON EXIT {|| lStopBtn := .T., lMnm := .F., oDlgPlay := Nil}
 
    oDlgPlay:oParent := oMainWindow
 
