@@ -44,12 +44,14 @@
 #define SCORE_Y_DELTA 100
 #define SCORE_Y_LIM   150
 
+#define KOL_RECENT      5
+
 REQUEST HB_CODEPAGE_UTF8
 REQUEST HB_CODEPAGE_RU1251
 REQUEST HB_STRTOUTF8, HB_TRANSLATE
 
 STATIC aOggPaths := {}, nCurrInstr := 1
-STATIC cFileHis
+STATIC cFileHis, cTestHis, aRecent := {}, lChgRecent := .F.
 STATIC cLanguage := "русский", aLangs, aSuff, cSuffix := "ru", cLangNew
 STATIC nZoom := 1, nZoomNew, nWndWidth, aFontsSiz := { -15, -17, -19 }, aKeySiz := { {28,20}, {32,24,}, {36,28} }
 STATIC nDelayArp := 120
@@ -130,6 +132,7 @@ FUNCTION Main
    aLangs := { cLanguage }
    aSuff := { cSuffix }
    cFileHis := hb_DirBase() + "sounds.his"
+   cTestHis := hb_DirBase() + "sounds_test.his"
    IniRead()
    hwg_SetResContainer( hb_DirBase() + "sounds.bin" )
    IniPlugRead()
@@ -468,6 +471,15 @@ STATIC FUNCTION IniRead()
    aIntDir[1] := aMsgs[44]
    aIntDir[2] := aMsgs[45]
 
+   IF !Empty( cTemp := MemoRead( cFileHis ) )
+      aRecent := hb_aTokens( cTemp, Chr(10) )
+      FOR i := Len( aRecent ) TO 1 STEP -1
+         IF Empty( aRecent[i] )
+            hb_ADel( aRecent, i, .T. )
+         ENDIF
+      NEXT
+   ENDIF
+
    RETURN NIL
 
 STATIC FUNCTION IniWrite()
@@ -550,7 +562,14 @@ STATIC FUNCTION SaveHis()
             Iif( Len(aTests[i])>4, Ltrim(Str(aTests[i,5]))+" ", "" )
       NEXT
       s += "}"
-      hb_MemoWrit( cFileHis, MemoRead( cFileHis ) + Chr(10) + s )
+      hb_MemoWrit( cTestHis, MemoRead( cTestHis ) + Chr(10) + s )
+   ENDIF
+   IF lChgRecent
+      s := ""
+      FOR i := 1 TO Len( aRecent )
+         s += aRecent[i] + Chr(10)
+      NEXT
+      hb_MemoWrit( cFileHis, s )
    ENDIF
 
    RETURN NIL
@@ -572,13 +591,23 @@ STATIC FUNCTION SeleMode()
 
 STATIC FUNCTION SetMode( nMode )
 
+   LOCAL aChoices, aFuncs, i
+
    nCurrMode := Iif( nMode > 1, 2, 1 )
    IF nCurrMode == 1
+      aChoices := { aMsgs[50]+",Ctrl-N", aMsgs[51]+",Ctrl-O", aMsgs[52]+",Ctrl-S", aMsgs[75], aMsgs[77] }
+      aFuncs := { {||NewNotes()}, {||LoadNotes()}, {||SaveNotes()}, {||ImportNotes()}, {||ExportNotes()} }
+      IF !Empty( aRecent )
+         FOR i := 1 TO Len( aRecent )
+            AAdd( aChoices, " -- " + hb_fnameName( aRecent[i] ) )
+            AAdd( aFuncs, &( "{||LoadRecent(" + Ltrim(Str(i)) + ")}" ) )
+         NEXT
+      ENDIF
       SetTest( .F. )
       SetVP( .T. )
       SetPaneBtn()
       oPaneTop:aControls[2]:title := aMsgs[49]
-      oPaneTop:aControls[2]:bClick := {|| FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,170,144,,,,{aMsgs[50]+",Ctrl-N",aMsgs[51]+",Ctrl-O",aMsgs[52]+",Ctrl-S",aMsgs[75],aMsgs[77]},{{||NewNotes()},{||LoadNotes()},{||SaveNotes()},{||ImportNotes()},{||ExportNotes()}}) }
+      oPaneTop:aControls[2]:bClick := {|| FileMenu( 64+nZoom*8,TOPPANE_HEIGHT*2,170,Len(aChoices)*30-6,,,,aChoices, aFuncs) }
       oPaneTop:aControls[3]:title := aMsgs[66]
       oPaneTop:aControls[3]:bClick := {|| menu_View() }
    ELSE
@@ -2253,20 +2282,45 @@ STATIC FUNCTION NewNotes()
 
    RETURN .T.
 
-STATIC FUNCTION LoadNotes()
+STATIC FUNCTION AddRecent( cFile )
 
-   LOCAL cFile, oLM, oNode0, oNode1, cNode, cTemp, arr, n, n1, i, j, cNote, xPitch, nDur, nPos, nPos2
+   LOCAL i
+
+   IF ( i := Ascan( aRecent, cFile ) ) > 0
+      ADel( aRecent, i )
+   ELSEIF Len( aRecent ) < KOL_RECENT
+      Aadd( aRecent, Nil )
+   ENDIF
+   AIns( aRecent, 1 )
+   aRecent[1] := cFile
+   lChgRecent := .T.
+
+   RETURN Nil
+
+FUNCTION LoadRecent( i )
+
+   IF i <= Len( aRecent )
+      LoadNotes( aRecent[i] )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION LoadNotes( cFile )
+
+   LOCAL oLM, oNode0, oNode1, cNode, cTemp, arr, n, n1, i, j, cNote, xPitch, nDur, nPos, nPos2
 
    IF !NewNotes()
       RETURN Nil
    ENDIF
-#ifdef __PLATFORM__UNIX
-   cFile := hwg_SelectfileEx( , hb_DirBase(), { { "Lm files", "*.lm" } } )
-#else
-   cFile := hwg_Selectfile( { "Lm files" }, { "*.lm" }, hb_DirBase()  )
-#endif
    IF Empty( cFile )
-      RETURN NIL
+#ifdef __PLATFORM__UNIX
+      cFile := hwg_SelectfileEx( , hb_DirBase(), { { "Lm files", "*.lm" } } )
+#else
+      cFile := hwg_Selectfile( { "Lm files" }, { "*.lm" }, hb_DirBase()  )
+#endif
+      IF Empty( cFile )
+         RETURN NIL
+      ENDIF
    ENDIF
 
    oLM := HXMLDoc():Read( cFile )
@@ -2333,6 +2387,7 @@ STATIC FUNCTION LoadNotes()
       hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
       oPaneHea:SetText( aMsgs[1] + Iif( Empty(oScore:cTitle), "", ": "+oScore:cTitle ) )
       hwg_Redrawwindow( oPaneHea:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      AddRecent( cFile )
    ELSE
       oMsg:MsgStop( "Wrong file format", "Error" )
    ENDIF
@@ -2387,6 +2442,7 @@ STATIC FUNCTION SaveNotes()
    s += '</lm>'
 
    hb_MemoWrit( cFile, s )
+   AddRecent( cFile )
 
    RETURN NIL
 
@@ -3426,7 +3482,7 @@ STATIC FUNCTION Zoomrep( oEdit, n )
 
 STATIC FUNCTION GetHistory( nType )
 
-   LOCAL aHis := hb_aTokens( Memoread( cFileHis ), Chr(10) )
+   LOCAL aHis := hb_aTokens( Memoread( cTestHis ), Chr(10) )
    LOCAL cDate, aRes := {}, arrCurr
    LOCAL i, j, j1, nPos, nPos2, aLine, arr
 
