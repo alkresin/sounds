@@ -12,7 +12,7 @@
 #include "inkey.ch"
 #include "hbclass.ch"
 
-#define APP_VERSION  "1.2"
+#define APP_VERSION  "1.3"
 
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0x000000
@@ -2981,7 +2981,7 @@ STATIC FUNCTION SetDlgEdi()
 
 STATIC FUNCTION Transpo()
 
-   LOCAL oDlg, oPanel, oGet1, oBtnBack
+   LOCAL oDlg, oPanel, oGet1, oBtnBack, oLenta1, oLenta2
    LOCAL nz := 1, n := 1, aCombo := { "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6" }
    LOCAL aBack := {}
    LOCAL bTransp := {||
@@ -3020,26 +3020,21 @@ STATIC FUNCTION Transpo()
       }
 
    INIT DIALOG oDlg TITLE "Transpo" ;
-      AT 100, 100 SIZE 340, 290 ;
-      FONT oFontWnd BACKCOLOR pClr["dlgback"] STYLE WND_NOTITLE + WND_NOSIZEBOX
+      AT 100, 100 SIZE 340, 270 ;
+      FONT oFontWnd BACKCOLOR pClr["clr2"] STYLE WND_NOTITLE + WND_NOSIZEBOX
 
    oDlg:oParent := oDlgEdi
 
    ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
       FONT oFontHea TEXT aMsgs[78] COORS 20 BTN_CLOSE
 
-   GET RADIOGROUP nz
-   @ 80,60 RADIOBUTTON aMsgs[79] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
-#endif
-   @ 200,60 RADIOBUTTON aMsgs[80] SIZE 80, 22 COLOR CLR_WHITE BACKCOLOR pClr["dlgback"]
-#ifdef __PLATFORM__UNIX
-   hwg_Setfgcolor( ATail(oDlg:aControls):handle, CLR_WHITE, 1 )
-#endif
-   END RADIOGROUP
+   oLenta1 := HLenta():New( ,, 90, 60, 160, 28, oFontWnd,,, ;
+      {|o|nz:=o:nSelected},,, { aMsgs[79],aMsgs[80] }, 80, aStyleLenta )
+   oLenta1:Value := nz
 
-   @ 120, 100 GET COMBOBOX oGet1 VAR n ITEMS aCombo SIZE 100, 28 BACKCOLOR pClr["clr5"]
+   oLenta2 := HLenta():New( ,, 20, 100, 300, 28, oFontWnd,,, ;
+      {|o|n:=o:nSelected},,, aCombo, 40, aStyleLenta )
+   oLenta2:Value := n
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
@@ -3053,7 +3048,7 @@ STATIC FUNCTION Transpo()
       ON CLICK bBack
    ATail(oDlg:aControls):aStyle := aStyleBtn
 
-   @ 120, 250 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
+   @ 120, 230 OWNERBUTTON SIZE 100, 32 TEXT aMsgs[11] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
       ON CLICK {|| hwg_EndDialog() }
    ATail(oDlg:aControls):aStyle := aStyleBtn
