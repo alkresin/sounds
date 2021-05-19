@@ -2443,6 +2443,7 @@ STATIC FUNCTION SaveNotes()
 
    hb_MemoWrit( cFile, s )
    AddRecent( cFile )
+   oScore:lUpdate := .F.
 
    RETURN NIL
 
