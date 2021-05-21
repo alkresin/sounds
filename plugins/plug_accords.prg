@@ -27,7 +27,7 @@ STATIC oDlgAcco
 STATIC accords := {}, lAccordsChg := .F.
 STATIC cPlugDir
 
-MEMVAR oMsg, aMsgs, aPlugMenu
+MEMVAR aMsgs, aPlugMenu
 
 FUNCTION Plug_accords()
 

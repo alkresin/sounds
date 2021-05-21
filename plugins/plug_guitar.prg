@@ -24,7 +24,7 @@ STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} 
 STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
 
-MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
+MEMVAR pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
 FUNCTION Plug_guitar()
 

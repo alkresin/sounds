@@ -35,7 +35,7 @@ STATIC aTable := { { { 0,0,0,0,0,0,0,0,0,0 }, { 1,1,1,1,1,1,1,1,1,1 }, { 1,1,1,1
    { 2,1,1,0,1,1,1,1,0,0 }, { 2,1,1,0,1,1,0,0,0,0 }, { 2,1,0,0,1,1,0,0,0,0 }, { 2,1,0,1,1,0,1,1,1,1 }, ;
    { 2,1,0,1,1,0,1,1,0,0 } } }
 
-MEMVAR oMsg, pClr, aPlugMenu, bPlugNote
+MEMVAR pClr, aPlugMenu, bPlugNote
 
 FUNCTION Plug_recorder()
 
