@@ -75,7 +75,7 @@ STATIC FUNCTION recorder_Dlg()
    oDlgReco:oParent := oMainWindow
 
    ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
-      TEXT "" COORS 20 BTN_CLOSE
+      TEXT Iif( nCurrNote>0, Note2Text( nCurrNote ), "" ) COORS 20 BTN_CLOSE
 
    @ 2, TOPPANE_HEIGHT PANEL oPaneReco SIZE oDlgReco:nWidth-4, oDlgReco:nHeight-TOPPANE_HEIGHT*2 ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
@@ -155,11 +155,11 @@ STATIC FUNCTION recorder_Show( n )
    IF !Empty( bPlugNote_Orig )
       Eval( bPlugNote_Orig, n )
    ENDIF
+   nCurrNote := Iif( Valtype(n) == "N", n, 0 )
    IF Empty( oDlgReco )
       RETURN Nil
    ENDIF
 
-   nCurrNote := Iif( Valtype(n) == "N", n, 0 )
    oDlgReco:oPanel:SetText( Note2Text( nCurrNote ) )
    oDlgReco:oPanel:Refresh()
    oPaneReco:Refresh()

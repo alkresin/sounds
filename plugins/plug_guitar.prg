@@ -18,8 +18,8 @@
 STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar
 STATIC oPen1, oPen1W, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
 STATIC cPlugDir
-STATIC nCurrNote := 0, nCurrMode := 0, nAccSele := 0
-STATIC pAccords, aAccords, aCurrAcc, aAcco1, aAcco2
+STATIC nCurrNote := 0, nCurrMode := 1, nAccSele := 0
+STATIC pAccords, aAccords, aCurrAcc := {}, aAcco1, aAcco2
 STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
@@ -57,7 +57,7 @@ FUNCTION Plug_guitar()
 
 STATIC FUNCTION guitar_Dlg()
 
-   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLenta1, oLenta2, h
+   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
       HStyle():New( { pClr["clr2"] }, 3,, 1, CLR_LIGHTGRAY_2 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
@@ -68,6 +68,34 @@ STATIC FUNCTION guitar_Dlg()
             Guitar_Acco_Show( n )
          ENDIF
       ENDIF
+      RETURN .T.
+   }
+   LOCAL bMenu := {||
+      IF nCurrMode == 2
+         oLenta1:Hide()
+         oLenta2:Hide()
+      ELSEIF nCurrMode == 3
+         oBtnOpen:Hide()
+      ENDIF
+      nCurrMode := oLentaM:nSelected
+      IF nCurrMode == 1
+         oPaneGuitar:Move( 0,, oDlgGuitar:nWidth )
+         hwg_ProcessMessage()
+         hwg_ProcessMessage()
+         oPaneGuitar:Move( 0,, oDlgGuitar:nWidth-2 )
+      ELSEIF nCurrMode == 2
+         oPaneGuitar:Move( 70,, oDlgGuitar:nWidth-70 )
+         oLenta1:Show()
+         oLenta2:Show()
+         Eval( bLClick )
+      ELSEIF nCurrMode == 3
+         oPaneGuitar:Move( 0,, oDlgGuitar:nWidth )
+         hwg_ProcessMessage()
+         hwg_ProcessMessage()
+         oPaneGuitar:Move( 0,, oDlgGuitar:nWidth-2 )
+         oBtnOpen:Show()
+      ENDIF
+      oPaneGuitar:Refresh()
       RETURN .T.
    }
 
@@ -87,7 +115,7 @@ STATIC FUNCTION guitar_Dlg()
    ENDIF
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, 400 SIZE 500, 210 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, 400 SIZE 500, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| DlgGuitarExit() }
 
    oDlgGuitar:oParent := oMainWindow
@@ -97,19 +125,28 @@ STATIC FUNCTION guitar_Dlg()
 
    oLenta1 := HLenta():New( ,, 0, TOPPANE_HEIGHT, 30, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
       oMainWindow:oFont,,, bLClick,,, aAcco1, 30, aStyle )
+   oLenta1:Value := 1
 
    oLenta2 := HLenta():New( ,, oLenta1:nWidth+2, TOPPANE_HEIGHT, 38, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
       oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   @ 70, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth-70, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
+   oLentaM := HLenta():New( oPanel,, 100, 4, 320, 22, ;
+      oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help" }, 80, aStyle )
+   oLentaM:Value := nCurrMode := 1
+
+   @ 0, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
    oPaneGuitar:bPaint := {|| guitar_Paint()}
    oPaneGuitar:bOther := {|o,msg,wp,lp| Guitar_Pane_Other(o,msg,wp,lp)}
 
+   @ 200, oPaneGuitar:nHeight-36 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 30 TEXT "Open" ;
+      ON CLICK {|| guitar_OpenTab() }
+   oBtnOpen:aStyle := aStyle
+
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
-   ACTIVATE DIALOG oDlgGuitar NOMODAL
+   ACTIVATE DIALOG oDlgGuitar NOMODAL ON ACTIVATE {||oLenta1:Hide(), oLenta2:Hide(), oBtnOpen:Hide()}
 
    RETURN Nil
 
@@ -118,16 +155,16 @@ STATIC FUNCTION guitar_Show( n )
    IF !Empty( bPlugNote_Orig )
       Eval( bPlugNote_Orig, n )
    ENDIF
+   nCurrNote := Iif( Valtype(n) == "N", n, 0 )
    IF Empty( oDlgGuitar )
       RETURN Nil
    ENDIF
 
-   nCurrMode := 0
-   nCurrNote := Iif( Valtype(n) == "N", n, 0 )
-   oDlgGuitar:oPanel:SetText( Note2Text( nCurrNote, .T. ) )
-   oDlgGuitar:oPanel:Refresh()
-   oPaneGuitar:Refresh()
-
+   IF nCurrMode == 1
+      oDlgGuitar:oPanel:SetText( Note2Text( nCurrNote, .T. ) )
+      oDlgGuitar:oPanel:Refresh()
+      oPaneGuitar:Refresh()
+   ENDIF
    RETURN Nil
 
 STATIC FUNCTION guitar_Paint()
@@ -143,7 +180,7 @@ STATIC FUNCTION guitar_Paint()
 
    hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
 
-   IF nCurrMode == 0
+   IF nCurrMode == 1
       hwg_Selectobject( hDC, oPen1:handle )
       hwg_Selectobject( hDC, oDlgGuitar:oFont:handle )
       hwg_SetTransparentMode( hDC, .T. )
@@ -177,7 +214,7 @@ STATIC FUNCTION guitar_Paint()
       hwg_Selectobject( hDC, oPen2:handle )
       hwg_Drawline( hDC, x1, y1, x1, y1+100 )
 
-   ELSEIF nCurrMode == 1
+   ELSEIF nCurrMode == 2
       hwg_Selectobject( hDC, oFontNote:handle )
       hwg_SetTransparentMode( hDC, .T. )
       FOR n := 1 TO Len( aCurrAcc )
@@ -231,6 +268,7 @@ STATIC FUNCTION guitar_Paint()
          hwg_Drawline( hDC, x1, y1, x1+100, y1 )
          x1 += 140
       NEXT
+      hwg_Selectobject( hDC, oDlgGuitar:oFont:handle )
       hwg_Drawtext( hDC, "Click any accord to play", 10, o:nHeight-30, o:nWidth-10, o:nHeight-8, DT_CENTER+DT_VCENTER )
       hwg_SetTransparentMode( hDC, .F. )
    ENDIF
@@ -252,14 +290,16 @@ STATIC FUNCTION Guitar_Acco_Show( n )
    ENDIF
    s := GetInBrackets( pAccords[aAccords[n]], '[', ']' )
    oDlgGuitar:oPanel:SetText( aAccords[n] )
-   nCurrMode := 1
+   //nCurrMode := 1
    aCurrAcc := Iif( Empty(s), {}, hb_ATokens( s, ',' ) )
    FOR i := 1 TO Len( aCurrAcc )
       aCurrAcc[i] := hb_ATokens( aCurrAcc[i],'-' )
    NEXT
    nAccSele := 0
-   oDlgGuitar:oPanel:Refresh()
-   oPaneGuitar:Refresh()
+   IF nCurrMode == 2
+      oDlgGuitar:oPanel:Refresh()
+      oPaneGuitar:Refresh()
+   ENDIF
 
    RETURN Nil
 
@@ -273,7 +313,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
       xm := hwg_Loword( lp )
       ym := hwg_Hiword( lp )
       Guitar_ReleaseSounds()
-      IF nCurrMode == 0
+      IF nCurrMode == 1
          FOR i := 1 TO 6
             IF nCurrNote > 0
                IF nCurrNote >= aStrings[i,2] .AND. nCurrNote <= aStrings[i,2] + 12
@@ -297,7 +337,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
             ENDIF
          NEXT
 
-      ELSEIF nCurrMode == 1
+      ELSEIF nCurrMode == 2
          FOR i := 1 TO Len( aCurrAcc )
             IF xm > x1+(i-1)*140 .AND. xm < x1+(i-1)*140+100 .AND. ym > y1 .AND. ym < y1+120
                j := 0
@@ -323,6 +363,19 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
    ENDIF
 
    RETURN -1
+
+
+STATIC FUNCTION guitar_OpenTab()
+
+   LOCAL cFile
+
+#ifdef __PLATFORM__UNIX
+   cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" } } )
+#else
+   cFile := hwg_Selectfile( { "Tab files" }, { "*.tab" }, cPlugDir  )
+#endif
+
+   RETURN Nil
 
 STATIC FUNCTION Guitar_ReadIni()
 
