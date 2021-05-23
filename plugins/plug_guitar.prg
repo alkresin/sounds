@@ -15,7 +15,7 @@
 
 #define LAD_KOL   4
 
-STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar
+STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar, oEdHlp
 STATIC oPen1, oPen1W, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
 STATIC cPlugDir
 STATIC nCurrNote := 0, nCurrMode := 1, nAccSele := 0
@@ -76,6 +76,9 @@ STATIC FUNCTION guitar_Dlg()
          oLenta2:Hide()
       ELSEIF nCurrMode == 3
          oBtnOpen:Hide()
+      ELSEIF nCurrMode == 4
+         oEdHlp:Hide()
+         oPaneGuitar:Show()
       ENDIF
       nCurrMode := oLentaM:nSelected
       IF nCurrMode == 1
@@ -94,6 +97,30 @@ STATIC FUNCTION guitar_Dlg()
          hwg_ProcessMessage()
          oPaneGuitar:Move( 0,, oDlgGuitar:nWidth-2 )
          oBtnOpen:Show()
+      ELSEIF nCurrMode == 4
+         oPaneGuitar:Hide()
+         IF Empty( oEdHlp )
+            oEdHlp := HCEdiExt():New( ,,, 0, TOPPANE_HEIGHT, oDlgGuitar:nWidth, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
+                  oMainWindow:oFont )
+            IF hwg__isUnicode()
+               oEdHlp:lUtf8 := .T.
+            ENDIF
+            oEdHlp:lReadOnly := .T.
+            oEdHlp:bColorCur := oEdHlp:bColor
+            oEdHlp:AddClass( "h1", "font-size: 140%; font-weight: bold;" )
+            oEdHlp:AddClass( "h2", "font-size: 130%; font-weight: bold;" )
+            oEdHlp:AddClass( "h3", "font-size: 120%; font-weight: bold;" )
+            oEdHlp:AddClass( "h4", "font-size: 110%; font-weight: bold;" )
+            oEdHlp:AddClass( "h5", "font-weight: bold;" )
+            oEdHlp:AddClass( "i", "font-style: italic;" )
+            oEdHlp:aDefClasses := { "h1","h2","h3","h4","h5","i","cite" }
+            oEdHlp:SetText( MemoRead( cPlugDir+"plug_guitar.hwge" ), "UTF8","UTF8" )
+         ELSE
+            oEdHlp:Show()
+         ENDIF
+      ELSEIF nCurrMode == 5
+         oDlgGuitar:Close()
+         RETURN .T.
       ENDIF
       oPaneGuitar:Refresh()
       RETURN .T.
@@ -121,7 +148,7 @@ STATIC FUNCTION guitar_Dlg()
    oDlgGuitar:oParent := oMainWindow
 
    ADD HEADER PANEL oPanel HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR pClr["dlghea"] ;
-      TEXT "" COORS 20 BTN_CLOSE
+      TEXT "" COORS 20 //BTN_CLOSE
 
    oLenta1 := HLenta():New( ,, 0, TOPPANE_HEIGHT, 30, oDlgGuitar:nHeight-TOPPANE_HEIGHT, ;
       oMainWindow:oFont,,, bLClick,,, aAcco1, 30, aStyle )
@@ -131,8 +158,8 @@ STATIC FUNCTION guitar_Dlg()
       oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   oLentaM := HLenta():New( oPanel,, 100, 4, 320, 22, ;
-      oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help" }, 80, aStyle )
+   oLentaM := HLenta():New( oPanel,, 100, 4, 390, 22, ;
+      oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help","Exit" }, 78, aStyle )
    oLentaM:Value := nCurrMode := 1
 
    @ 0, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
@@ -140,8 +167,11 @@ STATIC FUNCTION guitar_Dlg()
    oPaneGuitar:bPaint := {|| guitar_Paint()}
    oPaneGuitar:bOther := {|o,msg,wp,lp| Guitar_Pane_Other(o,msg,wp,lp)}
 
-   @ 200, oPaneGuitar:nHeight-36 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 30 TEXT "Open" ;
+   @ 160, oPaneGuitar:nHeight-28 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 28 TEXT "Open" ;
       ON CLICK {|| guitar_OpenTab() }
+   oBtnOpen:aStyle := aStyle
+   @ 250, oPaneGuitar:nHeight-28 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 28 TEXT "Save" ;
+      ON CLICK {|| guitar_SaveTab() }
    oBtnOpen:aStyle := aStyle
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
@@ -367,14 +397,47 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
 
 STATIC FUNCTION guitar_OpenTab()
 
-   LOCAL cFile
+   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr, l
 
 #ifdef __PLATFORM__UNIX
-   cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" } } )
+   cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" }, , { "Lm files", "*.lm" } } )
 #else
-   cFile := hwg_Selectfile( { "Tab files" }, { "*.tab" }, cPlugDir  )
+   cFile := hwg_Selectfile( { "Tab files","Lm files" }, { "*.tab","*.lm" }, cPlugDir  )
 #endif
 
+   IF Empty( cFile )
+      RETURN Nil
+   ENDIF
+
+   aTabs := hb_aTokens( Memoread( cFile ) )
+   DO WHILE ++i < Len( aTabs )
+      IF Left( (aTabs[i] := AlLTrim( aTabs[i] )), 2 ) == "E|"
+         FOR n := 1 TO 5
+            aTabs[i+n] = AlLTrim( aTabs[i] )
+         NEXT
+         j := 0
+         nLen := Len( aTabs[i] )
+         DO WHILE ++j < nLen
+            AFill( arr, 0 )
+            l := .F.
+            FOR n := 0 TO 5
+               IF IsDigit( Substr( aTabs[i+n], j, 1 ) )
+                  arr[n+1] := Val( Substr( aTabs[i+n], j, 2 ) )
+                  l := .T.
+               ELSE
+                  arr[n+1] := -1
+               ENDIF
+            NEXT
+            IF l
+            ENDIF
+         ENDDO
+         i += 5
+      ENDIF
+   ENDDO
+
+   RETURN Nil
+
+STATIC FUNCTION guitar_SaveTab()
    RETURN Nil
 
 STATIC FUNCTION Guitar_ReadIni()
