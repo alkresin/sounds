@@ -445,7 +445,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
 
 STATIC FUNCTION guitar_OpenTab()
 
-   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr[6], l, c, aNotes := {}
+   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr[6], l, c, nDist, aNotes := {}
 
 #ifdef __PLATFORM__UNIX
    cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" }, , { "Lm files", "*.lm" } } )
@@ -465,22 +465,33 @@ STATIC FUNCTION guitar_OpenTab()
          NEXT
          j := 2
          nLen := Len( aTabs[i] )
+         nDist := 0
          DO WHILE ++j <= nLen
             AFill( arr, 0 )
             l := .F.
             FOR n := 0 TO 5
                IF IsDigit( c := Substr( aTabs[i+n], j, 1 ) )
                   arr[n+1] := Val( Substr( aTabs[i+n], j, 2 ) )
+                  IF !l
+                     IF !Empty( aNotes ) .AND. ATail(aNotes)[2] == 0
+                        ATail(aNotes)[2] := Iif( nDist > 6, 1, 7 - nDist )
+                        nDist := 0
+                     ENDIF
+                  ENDIF
                   l := .T.
                ELSEIF c == '|' .AND. !Empty( aNotes )
                   noteSetAttr( ATail( aNotes ), "t" )
+                  ATail(aNotes)[2] := Iif( nDist > 6, 1, 7 - nDist )
+                  nDist := 0
                   EXIT
                ELSE
                   arr[n+1] := -1
                ENDIF
             NEXT
             IF l
-               AAdd( aNotes, { guitar_toNote(arr), 3, "tg/" + guitar_toTab(arr) } )
+               AAdd( aNotes, { guitar_toNote(arr), 0, "tg/" + guitar_toTab(arr) } )
+            ELSE
+               nDist ++
             ENDIF
          ENDDO
          i += 5
