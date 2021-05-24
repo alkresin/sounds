@@ -14,23 +14,26 @@
 #define TOPPANE_HEIGHT  28
 
 #define LAD_KOL   4
+#define DELTA_X   30
 
 STATIC bPlugNote_Orig, oDlgGuitar, oPaneGuitar, oEdHlp
 STATIC oPen1, oPen1W, oPen2, oFontNote, oBrushWhite, oBrushBlack, aGradient
 STATIC cPlugDir
-STATIC nCurrNote := 0, nCurrMode := 1, nAccSele := 0
+STATIC nCurrNote := 0, nCurrMode := 1, nAccSele := 0, nTabStart := 1
 STATIC pAccords, aAccords, aCurrAcc := {}, aAcco1, aAcco2
 STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} }
 STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
+STATIC oScore
 
-MEMVAR pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
+MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
-FUNCTION Plug_guitar()
+FUNCTION Plug_guitar( oSc )
 
    LOCAL i, s
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
+   oScore := oSc
 
    Guitar_ReadIni()
    aAcco1 := {}
@@ -57,7 +60,7 @@ FUNCTION Plug_guitar()
 
 STATIC FUNCTION guitar_Dlg()
 
-   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, h
+   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, oBtnSave, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
       HStyle():New( { pClr["clr2"] }, 3,, 1, CLR_LIGHTGRAY_2 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
@@ -76,6 +79,7 @@ STATIC FUNCTION guitar_Dlg()
          oLenta2:Hide()
       ELSEIF nCurrMode == 3
          oBtnOpen:Hide()
+         oBtnSave:Hide()
       ELSEIF nCurrMode == 4
          oEdHlp:Hide()
          oPaneGuitar:Show()
@@ -97,6 +101,7 @@ STATIC FUNCTION guitar_Dlg()
          hwg_ProcessMessage()
          oPaneGuitar:Move( 0,, oDlgGuitar:nWidth-2 )
          oBtnOpen:Show()
+         oBtnSave:Show()
       ELSEIF nCurrMode == 4
          oPaneGuitar:Hide()
          IF Empty( oEdHlp )
@@ -170,13 +175,13 @@ STATIC FUNCTION guitar_Dlg()
    @ 160, oPaneGuitar:nHeight-28 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 28 TEXT "Open" ;
       ON CLICK {|| guitar_OpenTab() }
    oBtnOpen:aStyle := aStyle
-   @ 250, oPaneGuitar:nHeight-28 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 28 TEXT "Save" ;
+   @ 250, oPaneGuitar:nHeight-28 OWNERBUTTON oBtnSave OF oPaneGuitar SIZE 90, 28 TEXT "Save" ;
       ON CLICK {|| guitar_SaveTab() }
-   oBtnOpen:aStyle := aStyle
+   oBtnSave:aStyle := aStyle
 
    oPanel:SetSysbtnColor( CLR_WHITE, pClr["topdark"] )
 
-   ACTIVATE DIALOG oDlgGuitar NOMODAL ON ACTIVATE {||oLenta1:Hide(), oLenta2:Hide(), oBtnOpen:Hide()}
+   ACTIVATE DIALOG oDlgGuitar NOMODAL ON ACTIVATE {||oLenta1:Hide(), oLenta2:Hide(), oBtnOpen:Hide(), oBtnSave:Hide()}
 
    RETURN Nil
 
@@ -207,6 +212,7 @@ STATIC FUNCTION guitar_Paint()
    LOCAL hDC    := hwg_Beginpaint( o:handle, pps )
 #endif
    LOCAL x1 := 30, y1 := 20, i, n, nMin, nMax, nLad, nBarre, nBarreLast
+   LOCAL aNotes, xc, nTabPos, c, nPos
 
    hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
 
@@ -301,6 +307,48 @@ STATIC FUNCTION guitar_Paint()
       hwg_Selectobject( hDC, oDlgGuitar:oFont:handle )
       hwg_Drawtext( hDC, "Click any accord to play", 10, o:nHeight-30, o:nWidth-10, o:nHeight-8, DT_CENTER+DT_VCENTER )
       hwg_SetTransparentMode( hDC, .F. )
+
+   ELSEIF nCurrMode == 3
+
+      hwg_Selectobject( hDC, oPen1:handle )
+      hwg_Selectobject( hDC, oDlgGuitar:oFont:handle )
+      hwg_SetTransparentMode( hDC, .T. )
+      FOR i := 1 TO 6
+         hwg_Drawline( hDC, x1, y1+(i-1)*20, o:nWidth-10, y1+(i-1)*20 )
+      NEXT
+      aNotes := oScore:aNotes
+      IF !Empty( aNotes ) .AND. noteCheckAttr( aNotes[1], "tg" )
+         xc := x1 + 10
+         nTabPos := nTabStart - 1
+         DO WHILE ++nTabPos <= Len( aNotes ) .AND. xc < o:nWidth - 10
+            IF Len( aNotes[nTabPos] ) >= 3 .AND. ( nPos := At( "tg/", aNotes[nTabPos,3] ) ) > 0
+               nPos += 2
+               FOR i := 1 TO 6
+                  IF ( c := Substr( aNotes[nTabPos,3], nPos+i, 1 ) ) != 'X'
+                     //hwg_writelog( str(nTabPos)+" "+str(n)+" "+c )
+                     IF c > '9'
+                        c := Str( Asc(c)-55,2 )
+                     ENDIF
+                     hwg_Fillrect( hDC, xc, y1-10+(i-1)*20+1, xc+24, y1+12+(i-1)*20-1, o:brush:handle )
+                     hwg_Drawtext( hDC, c, xc, y1-8+(i-1)*20, xc+24, y1+10+(i-1)*20, DT_CENTER+DT_VCENTER )
+                  ENDIF
+               NEXT
+               IF "t/" $ aNotes[nTabPos,3]
+                  hwg_Drawline( hDC, xc+28, y1, xc+28, y1+100 )
+               ENDIF
+            ENDIF
+            xc += DELTA_X
+         ENDDO
+      ENDIF
+      IF nTabStart == 1
+         hwg_Selectobject( hDC, oFontNote:handle )
+         FOR i := 1 TO 6
+            hwg_Drawtext( hDC, aStrings[i,1], x1-16, y1-8+(i-1)*20, x1, y1+10+(i-1)*20, DT_LEFT )
+         NEXT
+         hwg_SetTransparentMode( hDC, .F. )
+         hwg_Selectobject( hDC, oPen2:handle )
+         hwg_Drawline( hDC, x1, y1, x1, y1+100 )
+      ENDIF
    ENDIF
 
 #ifdef __PLATFORM__UNIX
@@ -397,7 +445,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
 
 STATIC FUNCTION guitar_OpenTab()
 
-   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr, l
+   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr[6], l, c, aNotes := {}
 
 #ifdef __PLATFORM__UNIX
    cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" }, , { "Lm files", "*.lm" } } )
@@ -409,33 +457,78 @@ STATIC FUNCTION guitar_OpenTab()
       RETURN Nil
    ENDIF
 
-   aTabs := hb_aTokens( Memoread( cFile ) )
+   aTabs := hb_aTokens( Memoread( cFile ), Chr(10) )
    DO WHILE ++i < Len( aTabs )
       IF Left( (aTabs[i] := AlLTrim( aTabs[i] )), 2 ) == "E|"
          FOR n := 1 TO 5
-            aTabs[i+n] = AlLTrim( aTabs[i] )
+            aTabs[i+n] = AlLTrim( aTabs[i+n] )
          NEXT
-         j := 0
+         j := 2
          nLen := Len( aTabs[i] )
-         DO WHILE ++j < nLen
+         DO WHILE ++j <= nLen
             AFill( arr, 0 )
             l := .F.
             FOR n := 0 TO 5
-               IF IsDigit( Substr( aTabs[i+n], j, 1 ) )
+               IF IsDigit( c := Substr( aTabs[i+n], j, 1 ) )
                   arr[n+1] := Val( Substr( aTabs[i+n], j, 2 ) )
                   l := .T.
+               ELSEIF c == '|' .AND. !Empty( aNotes )
+                  noteSetAttr( ATail( aNotes ), "t" )
+                  EXIT
                ELSE
                   arr[n+1] := -1
                ENDIF
             NEXT
             IF l
+               AAdd( aNotes, { guitar_toNote(arr), 3, "tg/" + guitar_toTab(arr) } )
             ENDIF
          ENDDO
          i += 5
       ENDIF
    ENDDO
+   IF !Empty( aNotes )
+      SetScore( aNotes )
+      nTabStart := 1
+      oPaneGuitar:Refresh()
+   ELSE
+      oMsg:MsgStop( "Wrong file format", "Error" )
+   ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION guitar_toNote( arr )
+
+   LOCAL n := 0, i, j := 0, xRes
+
+   FOR i := 1 TO 6
+      IF arr[i] >= 0
+         xRes := aStrings[i,2] + arr[i]
+         n ++
+      ENDIF
+   NEXT
+   IF n > 1
+      xRes := Array( n )
+   ELSE
+      RETURN xRes
+   ENDIF
+
+   FOR i := 1 TO 6
+      IF arr[i] >= 0
+         xRes[++j] := aStrings[i,2] + arr[i]
+      ENDIF
+   NEXT
+
+   RETURN xRes
+
+STATIC FUNCTION guitar_toTab( arr )
+
+   LOCAL s := "", i
+
+   FOR i := 1 TO 6
+      s += Iif( arr[i]==-1, 'X', Chr( arr[i] + Iif( arr[i]<10, 48, 55 ) ) )
+   NEXT
+
+   RETURN s
 
 STATIC FUNCTION guitar_SaveTab()
    RETURN Nil

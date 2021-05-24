@@ -543,7 +543,7 @@ STATIC FUNCTION IniPlugRead()
          IF File( cFile := hb_DirBase() + "plugins" + hb_ps() + cPlug + ".hrb" )
             IF !Empty( hPlug := hb_hrbLoad( cFile ) )
                AAdd( aPluginHandles, hPlug )
-               hb_hrbDo( hPlug )
+               hb_hrbDo( hPlug, oScore )
             ENDIF
          ENDIF
       ENDIF
@@ -2370,27 +2370,35 @@ STATIC FUNCTION LoadNotes( cFile )
    ENDIF
 
    IF !Empty( arr )
-      IF oDlgPlay != Nil
-         oDlgPlay:oTrackBPM:Value := Round( (oScore:nBPM-5) / 164.2857, 2 )
-         oDlgPlay:oSayBPM:SetText( Ltrim(Str(oScore:nBPM)) )
-      ENDIF
-      IF oDlgEdi != Nil
-         oDlgEdi:oCombo1:Value := Ascan( aMetres, Ltrim(Str(oScore:aMetre[1]))+'/'+Ltrim(Str(oScore:aMetre[2])) )
-         oDlgEdi:oCombo2:Value := Ascan( aKeySign, Ltrim(Str(oScore:nKey)) )
-      ENDIF
-      oScore:aNotes := arr
-      oScore:SetScrKol( oPaneScore )
-      oScore:CheckBas()
-      oScore:nSeleStart := oScore:nSeleEnd := 0
-      oScore:nCurrPage := 1
-      SetNotesCursor( VK_HOME )
-      hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
-      oPaneHea:SetText( aMsgs[1] + Iif( Empty(oScore:cTitle), "", ": "+oScore:cTitle ) )
-      hwg_Redrawwindow( oPaneHea:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      SetScore( arr )
       AddRecent( cFile )
    ELSE
       oMsg:MsgStop( "Wrong file format", "Error" )
    ENDIF
+
+   RETURN Nil
+
+FUNCTION SetScore( arr )
+
+   IF oDlgPlay != Nil
+      oDlgPlay:oTrackBPM:Value := Round( (oScore:nBPM-5) / 164.2857, 2 )
+      oDlgPlay:oSayBPM:SetText( Ltrim(Str(oScore:nBPM)) )
+   ENDIF
+   IF oDlgEdi != Nil
+      oDlgEdi:oCombo1:Value := Ascan( aMetres, Ltrim(Str(oScore:aMetre[1]))+'/'+Ltrim(Str(oScore:aMetre[2])) )
+      oDlgEdi:oCombo2:Value := Ascan( aKeySign, Ltrim(Str(oScore:nKey)) )
+   ENDIF
+   IF !Empty( arr )
+      oScore:aNotes := arr
+   ENDIF
+   oScore:SetScrKol( oPaneScore )
+   oScore:CheckBas()
+   oScore:nSeleStart := oScore:nSeleEnd := 0
+   oScore:nCurrPage := 1
+   SetNotesCursor( VK_HOME )
+   oPaneScore:Refresh()
+   oPaneHea:SetText( aMsgs[1] + Iif( Empty(oScore:cTitle), "", ": "+oScore:cTitle ) )
+   oPaneHea:Refresh()
 
    RETURN Nil
 
@@ -2512,18 +2520,7 @@ STATIC FUNCTION ImportNotes()
    ENDIF
 
    IF lRes
-      oScore:SetScrKol( oPaneScore )
-      oScore:CheckBas()
-      oScore:nSeleStart := oScore:nSeleEnd := 0
-      oScore:nCurrPage := 1
-      SetNotesCursor( VK_HOME )
-      IF oDlgEdi != Nil
-         oDlgEdi:oCombo1:Value := Ascan( aMetres, Ltrim(Str(oScore:aMetre[1]))+'/'+Ltrim(Str(oScore:aMetre[2])) )
-         oDlgEdi:oCombo2:Value := Ascan( aKeySign, Ltrim(Str(oScore:nKey)) )
-      ENDIF
-      hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
-      oPaneHea:SetText( aMsgs[1] + Iif( Empty(oScore:cTitle), "", ": "+oScore:cTitle ) )
-      hwg_Redrawwindow( oPaneHea:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      SetScore()
    ENDIF
 
    RETURN NIL
