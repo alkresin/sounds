@@ -1484,7 +1484,7 @@ STATIC FUNCTION SetNotesCursor( nKey )
    ENDIF
    SetDlgEdi()
    ShowNote( Iif( oScore:nCurr>0 .AND. oScore:nCurr<=Len(oScore:aNotes), oScore:aNotes[oScore:nCurr,1], 0 ) )
-   hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+   oPaneScore:Refresh()
 
    RETURN NIL
 
@@ -1498,7 +1498,7 @@ STATIC FUNCTION KeyPressSim( n, lPress )
          n := ( nOct-nOctave ) * 12 + nNote
          IF lPress
             oPaneVP:aControls[ n ]:Press()
-            hwg_Redrawwindow( oPaneVP:aControls[ n ]:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+            oPaneVP:aControls[ n ]:Refresh()
          ELSE
             oPaneVP:aControls[ n ]:Release()
          ENDIF
@@ -1671,7 +1671,6 @@ STATIC FUNCTION PlayNotes( lSele )
             ELSE
                IF LoadNote( n )
                   pa_SetVolume( aSounds[ n, 1 ], nCurrVol )
-                  //IF Len( oScore:aNotes[i] ) == 2 .OR. !("ti2/" $ oScore:aNotes[i,3])
                   IF !noteCheckAttr( oScore:aNotes[i], "ti2" )
                      sf_ChangeData( aSounds[nOrig,1], aSounds[ n, 1 ] )
                   ENDIF
@@ -1683,7 +1682,7 @@ STATIC FUNCTION PlayNotes( lSele )
          SetNotesCursor( VK_RIGHT )
       ENDIF
       lMnm := oDlgPlay != Nil .AND. oDlgPlay:oCheck1:value
-      hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+      oPaneScore:Refresh()
       nDur := aDur[Int(oScore:aNotes[i,2])] * Iif( oScore:aNotes[i,2] - Int(oScore:aNotes[i,2]) == 0.5, 1.5, 1 ) * ( 120/oScore:nBPM )
       DO WHILE Seconds() - nSec < nDur/1000
          hwg_ProcessMessage()
@@ -2979,7 +2978,7 @@ STATIC FUNCTION SetDlgEdi()
 
 STATIC FUNCTION Transpo()
 
-   LOCAL oDlg, oPanel, oGet1, oBtnBack, oLenta1, oLenta2
+   LOCAL oDlg, oPanel, oBtnBack, oLenta1, oLenta2
    LOCAL nz := 1, n := 1, aCombo := { "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6" }
    LOCAL aBack := {}
    LOCAL bTransp := {||
@@ -3215,7 +3214,6 @@ STATIC FUNCTION Options()
       FONT oFontHea TEXT aMsgs[4] COORS 20 BTN_CLOSE
 
    @ 20, 50 SAY aMsgs[10] SIZE 160, 22 COLOR CLR_WHITE TRANSPARENT
-   //@ 180, 50 GET COMBOBOX oGet1 VAR nLang ITEMS aLangs SIZE 140, 28 BACKCOLOR pClr["clr5"]
    oLenta1 := HLenta():New( ,, 140, 48, Min( 180,60*Len(aLangs) ), 28, oFontWnd,,, ;
       {|o|nLang:=o:nSelected},,, arr1, 60, aStyleLenta )
    oLenta1:Value := nLang
