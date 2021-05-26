@@ -1983,7 +1983,7 @@ STATIC FUNCTION oScore_Other( o, msg, wp, lp)
                oScore:nSeleStart := nSeleEnd
                oScore:nSeleEnd := nSeleStart
             ENDIF
-            hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+            oPaneScore:Refresh()
          ENDIF
 
       ELSEIF msg == WM_LBUTTONDOWN
@@ -1992,12 +1992,9 @@ STATIC FUNCTION oScore_Other( o, msg, wp, lp)
             nSelex := xm
             nSeleLine := n
             nSeleStart := Min( nStart + Int( (nSelex - x1) / nWidth ), Len( oScore:aNotes ) )
-            //hwg_writelog( ltrim(str(n)) + " " + ltrim(str(oScore:nCurr)) )
             SetDlgEdi()
             ShowNote( Iif( oScore:nCurr>0, oScore:aNotes[oScore:nCurr,1], 0 ) )
-            //oMainWindow:oSayNote1:SetText( Iif( oScore:nCurr>0.AND.oScore:nCurr<=Len(oScore:aNotes), ;
-            //   Note2Text( Iif( Valtype(oScore:aNotes[oScore:nCurr,1])=="A",oScore:aNotes[oScore:nCurr,1,1],oScore:aNotes[oScore:nCurr,1]), .T. ),.T. ) )
-            hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+            oPaneScore:Refresh()
          ELSEIF xm <= 26 .AND. ym < 26
             SwitchScore()
          ENDIF
@@ -2024,7 +2021,7 @@ STATIC FUNCTION oScore_Other( o, msg, wp, lp)
             PlayNotes( .T. )
          ELSEIF n == 3
             oScore:nSeleStart := oScore:nSeleEnd := 0
-            hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
+            oPaneScore:Refresh()
          ENDIF
       ENDIF
    ENDIF

@@ -363,7 +363,7 @@ STATIC FUNCTION guitar_Paint()
          hwg_Drawline( hDC, x1, y1+(i-1)*20, o:nWidth-10, y1+(i-1)*20 )
       NEXT
       aNotes := oScore:aNotes
-      IF !Empty( aNotes ) .AND. noteCheckAttr( aNotes[1], "tg" )
+      IF Empty( aNotes ) .OR. noteCheckAttr( aNotes[1], "tg" )
          xc := x1 + 10
          nTPos := nTabStart - 1
          DO WHILE ++nTPos <= Len( aNotes ) .AND. xc < o:nWidth - 10
@@ -388,6 +388,9 @@ STATIC FUNCTION guitar_Paint()
             ENDIF
             xc += DELTA_X
          ENDDO
+         IF nTabPosX == nTPos
+            hwg_Fillrect( hDC, xc-4, y1-12+(nTabPosY-1)*20+1, xc+28, y1+14+(nTabPosY-1)*20-1, oBrushWhite:handle )
+         ENDIF
          nTabEnd := nTPos - 1
          //hwg_writelog( str(nTabStart)+" "+str(nTabEnd)+" "+str(nTabPosX))
       ENDIF
@@ -489,7 +492,7 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
             ENDIF
          NEXT
       ELSEIF nCurrMode == 3
-         IF !Empty( oScore:aNotes ) .AND. noteCheckAttr( oScore:aNotes[1], "tg" )
+         IF Empty( oScore:aNotes ) .OR. noteCheckAttr( oScore:aNotes[1], "tg" )
             y1 := 30
             ym := Int( ym / 20 )
             IF ym < 7
@@ -504,6 +507,8 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
                   xc += DELTA_X
                ENDDO
                oPaneGuitar:Refresh()
+               oScore:nCurr := nTabPosX
+               HWindow():GetMain:oPaneNote:oPaneScore:Refresh()
             ENDIF
          ENDIF
       ENDIF
@@ -630,18 +635,19 @@ STATIC FUNCTION guitar_DragTab( oBtn, n, lForw )
 
 STATIC FUNCTION guitar_SetCursor( nKey )
 
+   LOCAL l := .F.
    //IF nTabStart == nTabEnd .AND. nTabEnd == 1
    //   RETURN Nil
    //ENDIF
    IF nKey == VK_UP
       IF nTabPosY > 0
          nTabPosY --
-         oPaneGuitar:Refresh()
+         l := .T.
       ENDIF
    ELSEIF nKey == VK_DOWN
       IF nTabPosY < 6
          nTabPosY ++
-         oPaneGuitar:Refresh()
+         l := .T.
       ENDIF
    ELSEIF nKey == VK_LEFT
       IF nTabPosX > 1
@@ -649,7 +655,7 @@ STATIC FUNCTION guitar_SetCursor( nKey )
          IF nTabPosX < nTabStart
             nTabStart := nTabPosX
          ENDIF
-         oPaneGuitar:Refresh()
+         l := .T.
       ENDIF
    ELSEIF nKey == VK_RIGHT
       IF nTabPosX < Len( oScore:aNotes )
@@ -657,7 +663,7 @@ STATIC FUNCTION guitar_SetCursor( nKey )
          IF nTabPosX > nTabEnd
             nTabStart ++
          ENDIF
-         oPaneGuitar:Refresh()
+         l := .T.
       ENDIF
    ELSEIF nKey == VK_HOME
       nTabPosX := nTabStart := 1
@@ -665,7 +671,12 @@ STATIC FUNCTION guitar_SetCursor( nKey )
    ELSEIF nKey == VK_END
       nTabPosX := Len( oScore:aNotes )
       nTabStart := Max( 1, nTabPosX - 8 )
+      l := .T.
+   ENDIF
+   IF l
       oPaneGuitar:Refresh()
+      oScore:nCurr := nTabPosX
+      HWindow():GetMain:oPaneNote:oPaneScore:Refresh()
    ENDIF
 
    RETURN Nil
