@@ -30,7 +30,7 @@ MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
 FUNCTION Plug_guitar( oSc )
 
-   LOCAL i, s
+   LOCAL i, j, s
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
    oScore := oSc
@@ -39,11 +39,12 @@ FUNCTION Plug_guitar( oSc )
    aAcco1 := {}
    aAcco2 := {}
    FOR i := 1 TO Len( aAccords )
-      s := Left( aAccords[i], 1 )
+      j := Iif( Substr(aAccords[i],2,1) == '#', 2, 1 )
+      s := Left( aAccords[i], j )
       IF hb_Ascan( aAcco1, s, .T. ) == 0
          AAdd( aAcco1, s )
       ENDIF
-      s := Substr( aAccords[i], 2 )
+      s := Substr( aAccords[i], j+1 )
       IF hb_Ascan( aAcco2, s, .T. ) == 0
          AAdd( aAcco2, s )
       ENDIF
@@ -533,7 +534,7 @@ STATIC FUNCTION guitar_OpenTab()
 
    aTabs := hb_aTokens( Memoread( cFile ), Chr(10) )
    DO WHILE ++i < Len( aTabs )
-      IF Left( (aTabs[i] := AlLTrim( aTabs[i] )), 2 ) == "E|"
+      IF Upper( Left( (aTabs[i] := AlLTrim( aTabs[i] )), 2 ) ) == "E|"
          FOR n := 1 TO 5
             aTabs[i+n] = AlLTrim( aTabs[i+n] )
          NEXT
@@ -683,6 +684,7 @@ STATIC FUNCTION guitar_SetCursor( nKey )
 
 STATIC FUNCTION guitar_LadInput( n )
 
+   HB_SYMBOL_UNUSED( n )
    IF nTabPosY == 0
       RETURN Nil
    ENDIF
