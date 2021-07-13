@@ -25,6 +25,7 @@ STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} 
 STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
 STATIC oScore
+STATIC lAutoRun := .F., lSetGuitar := .F., lOpenLast := .F., cLastTab
 
 MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
@@ -35,6 +36,7 @@ FUNCTION Plug_guitar( oSc )
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
    oScore := oSc
 
+   nCurrMode := 1
    Guitar_ReadIni()
    aAcco1 := {}
    aAcco2 := {}
@@ -57,6 +59,10 @@ FUNCTION Plug_guitar( oSc )
    bPlugNote := {|n| guitar_Show(n) }
    cSoundsPath += hb_ps()
 
+   IF lAutoRun
+      guitar_Dlg()
+   ENDIF
+
    RETURN Nil
 
 STATIC FUNCTION guitar_Dlg()
@@ -75,6 +81,9 @@ STATIC FUNCTION guitar_Dlg()
       RETURN .T.
    }
    LOCAL bMenu := {||
+      IF nCurrMode == oLentaM:nSelected
+         RETURN .T.
+      ENDIF
       IF nCurrMode == 2
          oLenta1:Hide()
          oLenta2:Hide()
@@ -107,6 +116,9 @@ STATIC FUNCTION guitar_Dlg()
          oBtnSave:Show()
          oBtnBack:Show()
          oBtnForw:Show()
+         IF lOpenLast .AND. !Empty( cLastTab ) .AND. ( Empty( oScore:aNotes ) .OR. !noteCheckAttr( oScore:aNotes[1], "tg" ) )
+            guitar_OpenTab( cLastTab )
+         ENDIF
       ELSEIF nCurrMode == 4
          oPaneGuitar:Hide()
          IF Empty( oEdHlp )
@@ -138,6 +150,7 @@ STATIC FUNCTION guitar_Dlg()
    LOCAL bActivate := {||
       oLenta1:Hide(); oLenta2:Hide()
       oBtnOpen:Hide(); oBtnSave:Hide(); oBtnBack:Hide(); oBtnForw:Hide()
+      Eval( bMenu )
       RETURN .T.
   }
 
@@ -154,12 +167,15 @@ STATIC FUNCTION guitar_Dlg()
       oFontNote := oMainWindow:oFont:SetFontStyle( ,,,,, Iif( (h := oMainWindow:oFont:height) < 0, h+2, h-2 ) )
       //aGradient := { pClr["topdark"], pClr["topmid"] }
       aGradient := { pClr["clr1"] }
+      IF lSetGuitar
+         SetInstr( "g" )
+      ENDIF
    ENDIF
 
    nTabStart := nTabEnd := nTabPosX := 1; nTabPosY := 0
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, 400 SIZE 500, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, oMainWindow:nHeight SIZE 500, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| DlgGuitarExit() }
 
    oDlgGuitar:oParent := oMainWindow
@@ -177,7 +193,8 @@ STATIC FUNCTION guitar_Dlg()
 
    oLentaM := HLenta():New( oPanel,, 100, 4, 390, 22, ;
       oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help","Exit" }, 78, aStyle )
-   oLentaM:Value := nCurrMode := 1
+   oLentaM:Value := nCurrMode
+   nCurrMode := 1
 
    @ 0, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
@@ -518,15 +535,17 @@ STATIC FUNCTION Guitar_Pane_Other( o, msg, wp, lp )
    RETURN -1
 
 
-STATIC FUNCTION guitar_OpenTab()
+STATIC FUNCTION guitar_OpenTab( cFile )
 
-   LOCAL cFile, aTabs, i := 0, j, n, nLen, arr[6], l, c, nDist, aNotes := {}
+   LOCAL aTabs, i := 0, j, n, nLen, arr[6], l, c, nDist, aNotes := {}
 
+   IF Empty( cFile )
 #ifdef __PLATFORM__UNIX
-   cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" }, , { "Lm files", "*.lm" } } )
+      cFile := hwg_SelectfileEx( , cPlugDir, { { "Tab files", "*.tab" }, , { "Lm files", "*.lm" } } )
 #else
-   cFile := hwg_Selectfile( { "Tab files","Lm files" }, { "*.tab","*.lm" }, cPlugDir  )
+      cFile := hwg_Selectfile( { "Tab files","Lm files" }, { "*.tab","*.lm" }, cPlugDir  )
 #endif
+   ENDIF
 
    IF Empty( cFile )
       RETURN Nil
@@ -573,6 +592,8 @@ STATIC FUNCTION guitar_OpenTab()
       ENDIF
    ENDDO
    IF !Empty( aNotes )
+      cLastTab := cFile
+      oDlgGuitar:oPanel:SetText( hb_fnameName(cFile) )
       SetScore( aNotes )
       nTabStart := 1
       oPaneGuitar:Refresh()
@@ -694,14 +715,47 @@ STATIC FUNCTION guitar_LadInput( n )
 STATIC FUNCTION Guitar_ReadIni()
 
    LOCAL cFile := cPlugDir + "guitar.ini"
-   LOCAL hIni := _iniRead( cFile ), aIni, nSect
+   LOCAL hIni := _iniRead( cFile ), aIni, nSect, aSect, cTemp
 
    IF !Empty( hIni )
       aIni := hb_HKeys( hIni )
       FOR nSect := 1 TO Len( aIni )
-         IF Upper( aIni[ nSect ] ) == "ACCORDS"
+         IF Upper( aIni[ nSect ] ) == "START"
+            IF !Empty( aSect := hIni[ aIni[ nSect ] ] )
+               IF hb_hHaskey( aSect, cTemp := "auto" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lAutoRun := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "setguitar" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lSetGuitar := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "mode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nCurrMode := Val( cTemp )
+                  IF nCurrMode < 1 .OR. nCurrMode > 3
+                     nCurrMode := 1
+                  ENDIF
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "openlast" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lOpenLast := ( Lower(cTemp) == "on" )
+               ENDIF
+            ENDIF
+         ELSEIF Upper( aIni[ nSect ] ) == "ACCORDS"
             pAccords := hIni[ aIni[nSect] ]
             aAccords := hb_HKeys( pAccords )
+         ENDIF
+      NEXT
+   ENDIF
+
+   cFile := cPlugDir + "guitar.his"
+   hIni := _iniRead( cFile )
+   IF !Empty( hIni )
+      aIni := hb_HKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Upper( aIni[ nSect ] ) == "FILES"
+            IF !Empty( aSect := hIni[ aIni[ nSect ] ] )
+               IF hb_hHaskey( aSect, cTemp := "f00" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cLastTab := cTemp
+               ENDIF
+            ENDIF
          ENDIF
       NEXT
    ENDIF
@@ -724,7 +778,13 @@ STATIC FUNCTION Guitar_ReleaseSounds()
 
 STATIC FUNCTION dlgGuitarExit()
 
+   LOCAL s
+
    oDlgGuitar := Nil
    Guitar_ReleaseSounds()
+   IF !Empty( cLastTab )
+      s := "[FILES]" + Chr(13) + Chr(10) + "f00=" + cLastTab
+      hb_MemoWrit( cPlugDir + "guitar.his", s )
+   ENDIF
 
    RETURN .T.

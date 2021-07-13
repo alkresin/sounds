@@ -135,7 +135,7 @@ FUNCTION Main
    cTestHis := hb_DirBase() + "sounds_test.his"
    IniRead()
    hwg_SetResContainer( hb_DirBase() + "sounds.bin" )
-   IniPlugRead()
+   //IniPlugRead()
 
    SetStyles()
    aSounds := Array( 84, 4 )
@@ -191,7 +191,7 @@ FUNCTION Main
 
    SET TIMER oTimer OF oMainWindow VALUE 100 ACTION {|| TimerFunc() }
 
-   ACTIVATE WINDOW oMainWindow
+   ACTIVATE WINDOW oMainWindow ON ACTIVATE {||IniPlugRead()}
 
    ReleaseSounds()
    pa_terminate()
@@ -713,13 +713,8 @@ STATIC FUNCTION SetVP( lShow )
       FOR i := 1 TO Len( aOggPaths )
          aMenu[i] := aOggPaths[i,1]
       NEXT
-      IF ( i := FileMenu( oPaneBtn:nLeft+oPaneBtn:oSayInstr:nLeft,oPaneBtn:nTop-h,120,h,,,, aMenu ) ) > 0 ;
-         .AND. nCurrInstr != i
-         nCurrInstr := i
-         oPaneBtn:oSayInstr:SetText( aOggPaths[i,1] )
-         ReleaseSounds()
-         CheckPianoKeys()
-         SetPianoKeys()
+      IF ( i := FileMenu( oPaneBtn:nLeft+oPaneBtn:oSayInstr:nLeft,oPaneBtn:nTop-h,120,h,,,, aMenu ) ) > 0
+         SetInstr( i )
       ENDIF
       RETURN .T.
    }
@@ -788,6 +783,24 @@ STATIC FUNCTION SetVP( lShow )
       ShowAll( oPaneVP, .F. )
    ENDIF
 
+   RETURN NIL
+
+FUNCTION SetInstr( nInstr )
+
+   IF Valtype( nInstr ) == "C"
+      nInstr := Ascan( aOggPaths, {|a|a[2] == nInstr} )
+      IF nInstr == 0
+         RETURN Nil
+      ENDIF
+   ENDIF
+
+   IF nCurrInstr != nInstr
+      nCurrInstr := nInstr
+      oPaneBtn:oSayInstr:SetText( aOggPaths[nInstr,1] )
+      ReleaseSounds()
+      CheckPianoKeys()
+      SetPianoKeys()
+   ENDIF
    RETURN NIL
 
 STATIC FUNCTION AddPianoKeys( x1, y1, yt, nTone )
