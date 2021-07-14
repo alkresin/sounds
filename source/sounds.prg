@@ -92,6 +92,7 @@ STATIC aKeySign := { "0", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "1", "2", "3
 STATIC aMetres := { "1/2", "1/4", "2/4", "3/4", "4/4", "2/8", "3/8", "4/8", "6/8", "8/8" }
 STATIC aDur := { 2048, 1024, 512, 256, 128, 64, 32 }
 STATIC lStopBtn
+STATIC aPluginHandles := {}
 
 MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
@@ -146,10 +147,12 @@ FUNCTION Main
    nWndWidth := 120 + (aKeySiz[nZoom,1]+2)*14
 #ifdef __PLATFORM__UNIX
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE
+      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] ;
+         STYLE WND_NOTITLE ON EXIT {||ClosePlugins()}
 #else
    INIT WINDOW oMainWindow MAIN TITLE "Sounds"  ;
-      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] STYLE WND_NOTITLE + WND_NOSIZEBOX
+      AT 200, 40 SIZE nWndWidth, MAINWND_H1 FONT oFontWnd BACKCOLOR pClr["clr5"] ;
+         STYLE WND_NOTITLE + WND_NOSIZEBOX ON EXIT {||ClosePlugins()}
 #endif
    ADD HEADER PANEL oPaneHea HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR 0x2F343F ;
       FONT oFontHea TEXT aMsgs[1] COORS 36 BTN_CLOSE BTN_MINIMIZE
@@ -195,6 +198,7 @@ FUNCTION Main
 
    ReleaseSounds()
    pa_terminate()
+
    IF (!Empty( cLangNew ) .AND. !(cLangNew == cLanguage) ) .OR. ;
       (!Empty( nZoomNew ) .AND. nZoomNew != nZoom)
       IniWrite()
@@ -202,6 +206,17 @@ FUNCTION Main
    SaveHis()
 
    RETURN NIL
+
+STATIC FUNCTION ClosePlugins()
+
+   LOCAL i, o
+   FOR i := 1 TO Len( aPlugMenu )
+      IF !Empty( o := Eval( aPlugMenu[i,2], .F. ) )
+         o:Close()
+      ENDIF
+   NEXT
+
+   RETURN .T.
 
 STATIC FUNCTION SetStyles()
 
@@ -529,7 +544,6 @@ STATIC FUNCTION IniPlugRead()
 
    LOCAL cFile := hb_DirBase() + "plugins" + hb_ps() + "plugins.ini"
    LOCAL hIni := _iniRead( cFile ), cTemp, hPlugs, aPlugs, i, cPlug, hPlug
-   STATIC aPluginHandles := {}
 
    IF Empty( hIni ) .OR. !hb_HHasKey( hIni, cTemp := "PLUGINS" )
       RETURN NIL
@@ -543,7 +557,7 @@ STATIC FUNCTION IniPlugRead()
          IF File( cFile := hb_DirBase() + "plugins" + hb_ps() + cPlug + ".hrb" )
             IF !Empty( hPlug := hb_hrbLoad( cFile ) )
                AAdd( aPluginHandles, hPlug )
-               hb_hrbDo( hPlug, oScore )
+               hb_hrbDo( hPlug, .T., oScore )
             ENDIF
          ENDIF
       ENDIF
@@ -635,7 +649,7 @@ STATIC FUNCTION menu_View()
    LOCAL i
 
    FOR i := 1 TO Len( aPlugMenu )
-      AAdd( aMenu, { .F., aPlugMenu[i,1] } )
+      AAdd( aMenu, { !Empty(Eval( aPlugMenu[i,2],.F.)), aPlugMenu[i,1] } )
    NEXT
 
    i := FileMenu( (64+nZoom*8)*2, TOPPANE_HEIGHT*2, 170, 58+Len(aPlugMenu)*28,,,, aMenu )
@@ -644,7 +658,7 @@ STATIC FUNCTION menu_View()
    ELSEIF i == 2
       Player()
    ELSEIF i > 2
-      Eval( aPlugMenu[i-2,2] )
+      Eval( aPlugMenu[i-2,2], .T. )
    ENDIF
 
    RETURN NIL
@@ -1606,7 +1620,7 @@ STATIC FUNCTION Play( n )
 
    RETURN .T.
 
-STATIC FUNCTION PlayNotes( lSele )
+FUNCTION PlayNotes( lSele )
 
    LOCAL nStart := 1, nEnd := Len( oScore:aNotes )
    LOCAL i, n, nSec, nDur, nOrig, arr, lPause := .F., lErr, lAccord
@@ -2413,7 +2427,7 @@ FUNCTION SetScore( arr )
 
 STATIC FUNCTION SaveNotes()
 
-   LOCAL i, j, aNotes := oScore:aNotes, cFile
+   LOCAL i, j, aNotes := oScore:aNotes, cFile, nPos, s1
    LOCAL s := '<?xml version="1.0" encoding="UTF-8"?>' + Chr(10) + '<lm version="0.3">' + Chr(10)
 
 #ifdef __PLATFORM__UNIX
@@ -2450,7 +2464,11 @@ STATIC FUNCTION SaveNotes()
       ELSE
          s += note2Text( aNotes[i,1] )
       ENDIF
-      s += '(' + Ltrim(Str(aNotes[i,2])) + ')'
+      s1 := Ltrim( Str( aNotes[i,2] ) )
+      IF ( nPos := At( ".", s1 ) ) > 0
+         s1 := Left( s1, nPos + 1 )
+      ENDIF
+      s += '(' + s1 + ')'
       IF Len( aNotes[i] ) > 2 .AND. !Empty( aNotes[i,3] )
          s += '[' + aNotes[i,3] + ']'
       ENDIF
@@ -2708,7 +2726,7 @@ STATIC FUNCTION ExportNotes()
 
    RETURN NIL
 
-STATIC FUNCTION Player()
+FUNCTION Player()
 
    LOCAL oPanel, oTrack, oCheck1, oTrackBPM, oSayBPM, oTrack2
    LOCAL bBPM := {|o,n|

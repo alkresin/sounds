@@ -29,11 +29,15 @@ STATIC cPlugDir
 
 MEMVAR aMsgs, aPlugMenu
 
-FUNCTION Plug_accords()
+FUNCTION Plug_accords( lInit )
+
+   IF !lInit
+      RETURN Nil
+   ENDIF
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
    Accords_ReadIni()
-   AAdd( aPlugMenu, { "Accords", {||dlgAccords()} } )
+   AAdd( aPlugMenu, { "Accords", {|l|dlgAccords(l)} } )
 
    RETURN Nil
 
@@ -87,7 +91,7 @@ STATIC FUNCTION DlgSetAccord( oDlgParent, arr )
 
    RETURN oDlg:lResult
 
-STATIC FUNCTION DlgAccords()
+STATIC FUNCTION DlgAccords( lOpen )
 
    LOCAL oMainWindow := HWindow():GetMain()
    LOCAL oPanel, oBtn, i, j, cName, nPos, nPos2
@@ -112,6 +116,10 @@ STATIC FUNCTION DlgAccords()
       ENDIF
       RETURN .T.
       }
+
+   IF lOpen != Nil .AND. !lOpen
+      RETURN oDlgAcco
+   ENDIF
 
    IF !Empty( oDlgAcco )
       RETURN Nil

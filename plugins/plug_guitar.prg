@@ -25,18 +25,22 @@ STATIC aStrings := { {"E",53}, {"B",48}, {"G",44}, {"D",39}, {"A",34}, {"E",29} 
 STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
 STATIC oScore
-STATIC lAutoRun := .F., lSetGuitar := .F., lOpenLast := .F., cLastTab
+STATIC lAutoRun := .F., lSetGuitar := .F., nDefMode := 1, lOpenLast := .F., cLastTab
 
 MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
-FUNCTION Plug_guitar( oSc )
+FUNCTION Plug_guitar( lInit, oSc )
 
    LOCAL i, j, s
+
+   IF !lInit
+      RETURN Nil
+   ENDIF
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
    oScore := oSc
 
-   nCurrMode := 1
+   nCurrMode := nDefMode
    Guitar_ReadIni()
    aAcco1 := {}
    aAcco2 := {}
@@ -52,7 +56,7 @@ FUNCTION Plug_guitar( oSc )
       ENDIF
    NEXT
 
-   AAdd( aPlugMenu, { "Guitar", {||guitar_Dlg()} } )
+   AAdd( aPlugMenu, { "Guitar", {|l|guitar_Dlg(l)} } )
    IF !Empty( bPlugNote )
       bPlugNote_Orig := bPlugNote
    ENDIF
@@ -60,12 +64,12 @@ FUNCTION Plug_guitar( oSc )
    cSoundsPath += hb_ps()
 
    IF lAutoRun
-      guitar_Dlg()
+      guitar_Dlg( .T. )
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION guitar_Dlg()
+STATIC FUNCTION guitar_Dlg( lOpen )
 
    LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, oBtnSave, oBtnBack, oBtnForw, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
@@ -141,6 +145,7 @@ STATIC FUNCTION guitar_Dlg()
             oEdHlp:Show()
          ENDIF
       ELSEIF nCurrMode == 5
+         nCurrMode := nDefMode
          oDlgGuitar:Close()
          RETURN .T.
       ENDIF
@@ -154,6 +159,9 @@ STATIC FUNCTION guitar_Dlg()
       RETURN .T.
   }
 
+   IF lOpen != Nil .AND. !lOpen
+      RETURN oDlgGuitar
+   ENDIF
    IF !Empty( oDlgGuitar )
       RETURN Nil
    ENDIF
@@ -175,7 +183,7 @@ STATIC FUNCTION guitar_Dlg()
    nTabStart := nTabEnd := nTabPosX := 1; nTabPosY := 0
 
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, oMainWindow:nHeight SIZE 500, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, oMainWindow:nHeight SIZE 560, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| DlgGuitarExit() }
 
    oDlgGuitar:oParent := oMainWindow
@@ -191,7 +199,7 @@ STATIC FUNCTION guitar_Dlg()
       oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   oLentaM := HLenta():New( oPanel,, 100, 4, 390, 22, ;
+   oLentaM := HLenta():New( oPanel,, 160, 4, 390, 22, ;
       oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help","Exit" }, 78, aStyle )
    oLentaM:Value := nCurrMode
    nCurrMode := 1
@@ -208,8 +216,8 @@ STATIC FUNCTION guitar_Dlg()
    @ 160, oPaneGuitar:nHeight-24 OWNERBUTTON oBtnOpen OF oPaneGuitar SIZE 90, 24 TEXT "Open" ;
       FONT oFontNote ON CLICK {|| guitar_OpenTab() }
    oBtnOpen:aStyle := aStyle
-   @ 250, oPaneGuitar:nHeight-24 OWNERBUTTON oBtnSave OF oPaneGuitar SIZE 90, 24 TEXT "Save" ;
-      FONT oFontNote ON CLICK {|| guitar_SaveTab() }
+   @ 250, oPaneGuitar:nHeight-24 OWNERBUTTON oBtnSave OF oPaneGuitar SIZE 90, 24 TEXT "Play" ;
+      FONT oFontNote ON CLICK {|| guitar_PlayTab() }
    oBtnSave:aStyle := aStyle
    @ oPaneGuitar:nWidth-24, oPaneGuitar:nHeight-24 OWNERBUTTON oBtnForw OF oPaneGuitar SIZE 24, 24 TEXT ">" ;
       FONT oFontNote ON CLICK {|o,n| guitar_DragTab(o,n,.T.) }
@@ -254,7 +262,8 @@ STATIC FUNCTION guitar_Show( n )
       oDlgGuitar:oPanel:SetText( Note2Text( nCurrNote, .T. ) )
       oDlgGuitar:oPanel:Refresh()
       oPaneGuitar:Refresh()
-   ELSEIF nCurrMode == 3 .AND. oScore:nCurr > 0 .AND. noteCheckAttr( oScore:aNotes[oScore:nCurr], "tg" )
+   ELSEIF nCurrMode == 3 .AND. oScore:nCurr > 0 .AND. ;
+      Len(oScore:aNotes) >= oScore:nCurr .AND. noteCheckAttr( oScore:aNotes[oScore:nCurr], "tg" )
       IF oScore:nCurr < nTabStart .OR. oScore:nCurr > nTabEnd
          nTabStart := oScore:nCurr
       ENDIF
@@ -594,6 +603,7 @@ STATIC FUNCTION guitar_OpenTab( cFile )
    IF !Empty( aNotes )
       cLastTab := cFile
       oDlgGuitar:oPanel:SetText( hb_fnameName(cFile) )
+      oDlgGuitar:oPanel:Refresh()
       SetScore( aNotes )
       nTabStart := 1
       oPaneGuitar:Refresh()
@@ -637,7 +647,14 @@ STATIC FUNCTION guitar_toTab( arr )
 
    RETURN s
 
-STATIC FUNCTION guitar_SaveTab()
+STATIC FUNCTION guitar_PlayTab()
+
+   IF !Empty( oScore:aNotes ) .AND. noteCheckAttr( oScore:aNotes[1], "tg" )
+      SetInstr( "g" )
+      Player()
+      PlayNotes( .F. )
+   ENDIF
+
    RETURN Nil
 
 STATIC FUNCTION guitar_DragTab( oBtn, n, lForw )
@@ -729,9 +746,9 @@ STATIC FUNCTION Guitar_ReadIni()
                   lSetGuitar := ( Lower(cTemp) == "on" )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "mode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  nCurrMode := Val( cTemp )
+                  nDefMode := nCurrMode := Val( cTemp )
                   IF nCurrMode < 1 .OR. nCurrMode > 3
-                     nCurrMode := 1
+                     nDefMode := nCurrMode := 1
                   ENDIF
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "openlast" ) .AND. !Empty( cTemp := aSect[ cTemp ] )

@@ -37,10 +37,14 @@ STATIC aTable := { { { 0,0,0,0,0,0,0,0,0,0 }, { 1,1,1,1,1,1,1,1,1,1 }, { 1,1,1,1
 
 MEMVAR pClr, aPlugMenu, bPlugNote
 
-FUNCTION Plug_recorder()
+FUNCTION Plug_recorder( lInit )
+
+   IF !lInit
+      RETURN Nil
+   ENDIF
 
    cPlugDir := hb_DirBase() + "plugins" + hb_ps()
-   AAdd( aPlugMenu, { "Recorder", {||recorder_Dlg()} } )
+   AAdd( aPlugMenu, { "Recorder", {|l|recorder_Dlg(l)} } )
    IF !Empty( bPlugNote )
       bPlugNote_Orig := bPlugNote
    ENDIF
@@ -48,9 +52,13 @@ FUNCTION Plug_recorder()
 
    RETURN Nil
 
-STATIC FUNCTION recorder_Dlg()
+STATIC FUNCTION recorder_Dlg( lOpen )
 
    LOCAL oMainWindow := HWindow():GetMain(), oPanel, oBinCnt
+
+   IF lOpen != Nil .AND. !lOpen
+      RETURN oDlgReco
+   ENDIF
 
    IF !Empty( oDlgReco )
       RETURN Nil
