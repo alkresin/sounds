@@ -26,6 +26,7 @@ STATIC arrSounds[6]
 STATIC cSoundsPath := "Sounds_guitar_ogg"
 STATIC oScore
 STATIC lAutoRun := .F., lSetGuitar := .F., nDefMode := 1, lOpenLast := .F., cLastTab
+STATIC lDlgExpand := .F.
 
 MEMVAR oMsg, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
@@ -71,7 +72,8 @@ FUNCTION Plug_guitar( lInit, oSc )
 
 STATIC FUNCTION guitar_Dlg( lOpen )
 
-   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, oBtnSave, oBtnBack, oBtnForw, h
+   LOCAL oMainWindow := HWindow():GetMain(), oPanel, oLentaM, oLenta1, oLenta2, oBtnOpen, oBtnSave, oBtnBack, oBtnForw
+   LOCAL nDlgWidth, h
    LOCAL aStyle := { HStyle():New( { pClr["clr3"], pClr["clr4"] }, 3 ), ;
       HStyle():New( { pClr["clr2"] }, 3,, 1, CLR_LIGHTGRAY_2 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
@@ -85,6 +87,7 @@ STATIC FUNCTION guitar_Dlg( lOpen )
       RETURN .T.
    }
    LOCAL bMenu := {||
+      LOCAL i
       IF nCurrMode == oLentaM:nSelected
          RETURN .T.
       ENDIF
@@ -99,6 +102,9 @@ STATIC FUNCTION guitar_Dlg( lOpen )
       ELSEIF nCurrMode == 4
          oEdHlp:Hide()
          oPaneGuitar:Show()
+         FOR i := 1 TO Len(oPaneGuitar:aControls)
+            oPaneGuitar:aControls[i]:Hide()
+         NEXT
       ENDIF
       nCurrMode := oLentaM:nSelected
       IF nCurrMode == 1
@@ -182,8 +188,9 @@ STATIC FUNCTION guitar_Dlg( lOpen )
 
    nTabStart := nTabEnd := nTabPosX := 1; nTabPosY := 0
 
+   nDlgWidth := Iif( lDlgExpand, hwg_GetDesktopWidth()-40, 560 )
    INIT DIALOG oDlgGuitar TITLE "Guitar" BACKCOLOR pClr["dlgback"] ;
-      AT 20, oMainWindow:nHeight SIZE 560, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
+      AT 20, oMainWindow:nHeight SIZE nDlgWidth, 220 FONT oMainWindow:oFont STYLE WND_NOTITLE + WND_NOSIZEBOX ;
       ON EXIT {|| DlgGuitarExit() }
 
    oDlgGuitar:oParent := oMainWindow
@@ -199,10 +206,13 @@ STATIC FUNCTION guitar_Dlg( lOpen )
       oMainWindow:oFont,,, bLClick,,, aAcco2, 30, aStyle )
    oLenta2:Value := 1
 
-   oLentaM := HLenta():New( oPanel,, 160, 4, 390, 22, ;
+   oLentaM := HLenta():New( oPanel,, 140, 4, 390, 22, ;
       oFontNote,,, bMenu,,, { "CurrNote","Accords","Tabs","Help","Exit" }, 78, aStyle )
    oLentaM:Value := nCurrMode
    nCurrMode := 1
+   @ oPanel:nWidth-24, 2 OWNERBUTTON oBtnBack OF oPanel SIZE 24, 24 TEXT Iif( lDlgExpand, "><", "<>" );
+      FONT oFontNote ON CLICK {|| guitar_Resize() }
+   oBtnBack:aStyle := aStyle
 
    @ 0, TOPPANE_HEIGHT PANEL oPaneGuitar SIZE oDlgGuitar:nWidth, oDlgGuitar:nHeight-TOPPANE_HEIGHT ;
       STYLE SS_OWNERDRAW BACKCOLOR pClr["clr3"] ON SIZE {||.t.}
@@ -232,7 +242,7 @@ STATIC FUNCTION guitar_Dlg( lOpen )
    SET KEY 0, VK_DOWN TO guitar_SetCursor( VK_DOWN )
    SET KEY 0, VK_HOME TO guitar_SetCursor( VK_HOME )
    SET KEY 0, VK_END TO guitar_SetCursor( VK_END )
-
+/*
    SET KEY 0, Asc( "1" ) TO guitar_LadInput( 1 )
    SET KEY 0, Asc( "2" ) TO guitar_LadInput( 2 )
    SET KEY 0, Asc( "3" ) TO guitar_LadInput( 3 )
@@ -243,7 +253,7 @@ STATIC FUNCTION guitar_Dlg( lOpen )
    SET KEY 0, Asc( "8" ) TO guitar_LadInput( 8 )
    SET KEY 0, Asc( "9" ) TO guitar_LadInput( 9 )
    SET KEY 0, Asc( "0" ) TO guitar_LadInput( 0 )
-
+*/
    ACTIVATE DIALOG oDlgGuitar NOMODAL ON ACTIVATE bActivate
 
    RETURN Nil
@@ -726,6 +736,14 @@ STATIC FUNCTION guitar_LadInput( n )
    IF nTabPosY == 0
       RETURN Nil
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION guitar_Resize()
+
+   oDlgGuitar:Close()
+   lDlgExpand := !lDlgExpand
+   guitar_Dlg( .T. )
 
    RETURN Nil
 
