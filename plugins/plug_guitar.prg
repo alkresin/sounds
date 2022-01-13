@@ -601,6 +601,9 @@ STATIC FUNCTION guitar_OpenTab( cFile )
                   arr[n+1] := -1
                ENDIF
             NEXT
+            IF l .AND. Substr( aTabs[i], j+1, 1 ) != '|'
+               j ++
+            ENDIF
             IF l
                AAdd( aNotes, { guitar_toNote(arr), 0, "tg/" + guitar_toTab(arr) } )
             ELSE
