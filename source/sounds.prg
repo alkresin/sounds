@@ -46,6 +46,8 @@
 
 #define KOL_RECENT      5
 
+#define BPM_KOEF      164.2857
+
 REQUEST HB_CODEPAGE_UTF8
 REQUEST HB_CODEPAGE_RU1251
 REQUEST HB_STRTOUTF8, HB_TRANSLATE
@@ -192,7 +194,7 @@ FUNCTION Main
    SetMode( 1 )
    SetKeyboard()
 
-   SET TIMER oTimer OF oMainWindow VALUE 100 ACTION {|| TimerFunc() }
+   SET TIMER oTimer OF oMainWindow VALUE 50 ACTION {|| TimerFunc() }
 
    ACTIVATE WINDOW oMainWindow ON ACTIVATE {||IniPlugRead()}
 
@@ -1896,9 +1898,10 @@ FUNCTION TimerFunc()
          ENDIF
       ENDIF
       IF mnmSound != Nil
-         IF (nMnmNext == 0 .OR. ( Seconds() - nMnmStart ) >= nMnmNext) .AND. !lMnmPlay
+         IF ( nMnmNext == 0 .OR. (Seconds() - nMnmStart) >= nMnmNext ) .AND. !lMnmPlay
             nMnmNext := 60 / oScore:nBPM
             nMnmStart := Seconds()
+            //hwg_writelog( str(nMnmNext) + " " + str(nMnmStart) )
             lMnmPlay := .T.
             pa_SetVolume( mnmSound, nMnmVol )
             pa_OpenStream( mnmSound )
@@ -2404,7 +2407,7 @@ STATIC FUNCTION LoadNotes( cFile )
 FUNCTION SetScore( arr )
 
    IF oDlgPlay != Nil
-      oDlgPlay:oTrackBPM:Value := Round( (oScore:nBPM-5) / 164.2857, 2 )
+      oDlgPlay:oTrackBPM:Value := Round( (oScore:nBPM-5) / BPM_KOEF, 2 )
       oDlgPlay:oSayBPM:SetText( Ltrim(Str(oScore:nBPM)) )
    ENDIF
    IF oDlgEdi != Nil
@@ -2730,7 +2733,7 @@ FUNCTION Player()
 
    LOCAL oPanel, oTrack, oCheck1, oTrackBPM, oSayBPM, oTrack2
    LOCAL bBPM := {|o,n|
-      oScore:nBpm := Int( 5 + n * 164.2858 )
+      oScore:nBpm := Int( 5 + n * (BPM_KOEF+0.0001) )
       oDlgPlay:oSayBPM:SetText( Ltrim(Str(oScore:nBPM)) )
       HB_SYMBOL_UNUSED(o)
       RETURN .T.
@@ -2795,7 +2798,7 @@ FUNCTION Player()
    hwg_Addtooltip( oTrackBPM:handle, aMsgs[72] )
    oTrackBPM:tColor2 := CLR_LIGHTGRAY_1
    oTrackBPM:bChange := bBPM
-   oTrackBPM:Value := Round( (oScore:nBPM-5) / 164.2857,2 )
+   oTrackBPM:Value := Round( (oScore:nBPM-5) / BPM_KOEF,2 )
    @ oDlgPlay:nWidth-60, TOPPANE_HEIGHT+110 SAY oSayBPM CAPTION Ltrim(Str(oScore:nBPM)) SIZE 50, 24 ;
       FONT oFontBold COLOR CLR_WHITE TRANSPARENT
 
