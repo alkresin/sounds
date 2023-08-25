@@ -709,7 +709,7 @@ STATIC FUNCTION SetVP( lShow )
    }
    LOCAL bTrPaint := {|o,hDC|
       LOCAL y1, nHalf
-      hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:brush:handle )
+      hwg_Fillrect( hDC, 0, 0, o:nWidth, o:nHeight, o:oBrush:handle )
       hwg_Selectobject( hDC, o:oPen1:handle )
 
       nHalf := Int(o:nSize/2)
@@ -779,9 +779,9 @@ STATIC FUNCTION SetVP( lShow )
          hwg_SetCtrlName( oTrack, "OTRACK" )
          hwg_Addtooltip( oTrack:handle, aMsgs[70] )
          oTrack:cargo := 1
-         oTrack:tColor2 := CLR_LIGHTGRAY_1
+         oTrack:oDrawn:tColor2 := CLR_LIGHTGRAY_1
          oTrack:bChange := bVolChange
-         oTrack:bPaint := bTrPaint
+         oTrack:oDrawn:bPaint := bTrPaint
          oTrack:Value := 0.5
 
          @ oPaneBtn:nWidth/2+100, 2 SAY oSayInstr CAPTION aOggPaths[nCurrInstr,1] OF oPaneBtn SIZE 120, 24 ;
@@ -2778,9 +2778,9 @@ FUNCTION Player()
    hwg_SetCtrlName( oTrack, "OTRACK" )
    hwg_Addtooltip( oTrack:handle, aMsgs[70] )
    oTrack:cargo := 2
-   oTrack:tColor2 := CLR_LIGHTGRAY_1
+   oTrack:oDrawn:tColor2 := CLR_LIGHTGRAY_1
    oTrack:bChange := oPaneBtn:oTrack:bChange
-   oTrack:bPaint := oPaneBtn:oTrack:bPaint
+   oTrack:oDrawn:bPaint := oPaneBtn:oTrack:bPaint
    oTrack:Value := oPaneBtn:oTrack:Value
 
    @ 300, TOPPANE_HEIGHT+20 CHECKBOX oCheck1 CAPTION " " SIZE 40, 24 ;
@@ -2796,7 +2796,7 @@ FUNCTION Player()
    oTrackBPM := HTrack():New( oDlgPlay,, 70, TOPPANE_HEIGHT+110, 200, 28,,, CLR_WHITE, pClr["clr1"], 16 )
    hwg_SetCtrlName( oTrackBPM, "OTRACKBPM" )
    hwg_Addtooltip( oTrackBPM:handle, aMsgs[72] )
-   oTrackBPM:tColor2 := CLR_LIGHTGRAY_1
+   oTrackBPM:oDrawn:tColor2 := CLR_LIGHTGRAY_1
    oTrackBPM:bChange := bBPM
    oTrackBPM:Value := Round( (oScore:nBPM-5) / BPM_KOEF,2 )
    @ oDlgPlay:nWidth-60, TOPPANE_HEIGHT+110 SAY oSayBPM CAPTION Ltrim(Str(oScore:nBPM)) SIZE 50, 24 ;
@@ -2817,9 +2817,9 @@ FUNCTION Player()
    oTrack2 := HTrack():New( oDlgPlay,, 140, TOPPANE_HEIGHT+150, 150, 28,,, CLR_WHITE, pClr["clr1"], 16 )
    hwg_Addtooltip( oTrack2:handle, aMsgs[71] )
    oTrack2:cargo := 2
-   oTrack2:tColor2 := CLR_LIGHTGRAY_1
+   oTrack2:oDrawn:tColor2 := CLR_LIGHTGRAY_1
    oTrack2:bChange := bMnmVol
-   oTrack2:bPaint := oTrack:bPaint
+   oTrack2:oDrawn:bPaint := oTrack:oDrawn:bPaint
    oTrack2:Value := 0.5
 
    @ 20, 280 SAY "" SIZE oDlgPlay:nWidth-40, 2
