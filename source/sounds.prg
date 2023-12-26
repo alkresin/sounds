@@ -158,7 +158,9 @@ FUNCTION Main
 #endif
    ADD HEADER PANEL oPaneHea HEIGHT TOPPANE_HEIGHT TEXTCOLOR CLR_WHITE BACKCOLOR 0x2F343F ;
       FONT oFontHea TEXT aMsgs[1] COORS 36 BTN_CLOSE BTN_MINIMIZE
-   oPaneHea:SetPaintCB( PAINT_ITEM, bPaintHea )
+   //oPaneHea:SetPaintCB( PAINT_ITEM, bPaintHea )
+   oPaneHea:oPaintCB := HPaintCB():New()
+   oPaneHea:oPaintCB:Set( PAINT_ITEM, bPaintHea )
    oPaneHea:SetSysbtnColor( CLR_WHITE, 0x7b7680 )
 
    @ 0, TOPPANE_HEIGHT PANEL oPaneTop SIZE nWndWidth, TOPPANE_HEIGHT HSTYLE oStyleDarkNormal ;
