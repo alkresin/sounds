@@ -103,7 +103,9 @@ METHOD Message( cText, cTitle, oImage, nAlign, ... ) CLASS HMessage
          FONT ::oFontHea TEXT cTitle COORS 20
       IF !Empty( oImage )
         oPanelH:xt := oImage:nWidth + 24
-        oPanelH:SetPaintCB( PAINT_ITEM, bPaintHea )
+        //oPanelH:SetPaintCB( PAINT_ITEM, bPaintHea )
+        oPanelH:oPaintCB := HPaintCB():New()
+        oPanelH:oPaintCB:Set( PAINT_ITEM, bPaintHea )
       ENDIF
       y1 += oPanelH:nHeight
    ENDIF

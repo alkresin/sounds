@@ -78,8 +78,8 @@ STATIC FUNCTION guitar_Dlg( lOpen )
       HStyle():New( { pClr["clr2"] }, 3,, 1, CLR_LIGHTGRAY_2 ), HStyle():New( { pClr["clr4"] }, 3 ) }
    LOCAL bLClick := {||
       LOCAL s, n
-      IF oLenta1:nSelected > 0 .AND. oLenta2:nSelected > 0
-         s := aAcco1[oLenta1:nSelected] + aAcco2[oLenta2:nSelected]
+      IF oLenta1:Value > 0 .AND. oLenta2:Value > 0
+         s := aAcco1[oLenta1:Value] + aAcco2[oLenta2:Value]
          IF ( n := hb_Ascan( aAccords, s,,, .T. ) ) > 0
             Guitar_Acco_Show( n )
          ENDIF
@@ -88,7 +88,7 @@ STATIC FUNCTION guitar_Dlg( lOpen )
    }
    LOCAL bMenu := {||
       LOCAL i
-      IF nCurrMode == oLentaM:nSelected
+      IF nCurrMode == oLentaM:Value
          RETURN .T.
       ENDIF
       IF nCurrMode == 2
@@ -106,7 +106,7 @@ STATIC FUNCTION guitar_Dlg( lOpen )
             oPaneGuitar:aControls[i]:Hide()
          NEXT
       ENDIF
-      nCurrMode := oLentaM:nSelected
+      nCurrMode := oLentaM:Value
       IF nCurrMode == 1
          oPaneGuitar:Move( 0,, oDlgGuitar:nWidth )
          hwg_ProcessMessage()

@@ -134,7 +134,9 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
       oBrw:AddColumn( HColumn():New( ,{ ||oBrw:aArray[oBrw:nCurrent,2] },"C",8 ) )
       oBrw:aColumns[1]:aBitmaps := { { {|l|l}, oBmpCheck } }
       IF lbline
-         oBrw:aColumns[2]:setPaintCB( PAINT_LINE_ALL, bLine )
+         //oBrw:aColumns[2]:setPaintCB( PAINT_LINE_ALL, bLine )
+         oBrw:aColumns[2]:oPaintCB := HPaintCB():New()
+         oBrw:aColumns[2]:oPaintCB:Set( PAINT_LINE_ALL, bLine )
       ENDIF
       lMulti := .T.
    ELSE
@@ -146,7 +148,9 @@ FUNCTION FileMenu( x1, y1, nWidth, nHeight, clrt, clrb, clrsel, aChoices, aFuncs
       NEXT
       oBrw:AddColumn( HColumn():New( ,{ ||oBrw:aArray[oBrw:nCurrent] },"C",4 ) )
       IF lbline
-         oBrw:aColumns[1]:setPaintCB( PAINT_LINE_ALL, bLine )
+         //oBrw:aColumns[1]:setPaintCB( PAINT_LINE_ALL, bLine )
+         oBrw:aColumns[1]:oPaintCB := HPaintCB():New()
+         oBrw:aColumns[1]:oPaintCB:Set( PAINT_LINE_ALL, bLine )
       ENDIF
    ENDIF
    oBrw:lDispHead := .F.
