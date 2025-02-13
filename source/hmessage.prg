@@ -95,10 +95,10 @@ METHOD Message( cText, cTitle, oImage, nAlign, ... ) CLASS HMessage
 
    IF ::lWndTitle
       INIT DIALOG oDlg TITLE cTitle BACKCOLOR ::nClrBack ;
-         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 120
+         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 120 FONT ::oFont
    ELSE
       INIT DIALOG oDlg TITLE cTitle BACKCOLOR ::nClrBack ;
-         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 140 STYLE WND_NOTITLE + WND_NOSIZEBOX
+         SIZE nDlgWidth, (Len(arr) * nLineHeight+4) + 140 STYLE WND_NOTITLE + WND_NOSIZEBOX FONT ::oFont
       ADD HEADER PANEL oPanelH HEIGHT 32 TEXTCOLOR ::nClrHeaText BACKCOLOR ::nClrHeaBack ;
          FONT ::oFontHea TEXT cTitle COORS 20
       IF !Empty( oImage )
@@ -293,4 +293,3 @@ METHOD MsgGet( cTitle, ... ) CLASS HMessage
    ENDIF
 
    RETURN oDlg:lResult
-
