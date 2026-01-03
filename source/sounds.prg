@@ -137,8 +137,13 @@ FUNCTION Main
    cFileHis := hb_DirBase() + "sounds.his"
    cTestHis := hb_DirBase() + "sounds_test.his"
    IniRead()
-   hwg_SetResContainer( hb_DirBase() + "sounds.bin" )
-   //IniPlugRead()
+
+   IF File( hb_DirBase() + "sounds.bin" )
+      hwg_SetResContainer( hb_DirBase() + "sounds.bin" )
+   ELSE
+      hwg_MsgStop( "Resources file sounds.bin is absent", "Fatal error" )
+      RETURN Nil
+   ENDIF
 
    SetStyles()
    aSounds := Array( 84, 4 )
@@ -2400,6 +2405,7 @@ STATIC FUNCTION LoadNotes( cFile )
    IF !Empty( arr )
       SetScore( arr )
       AddRecent( cFile )
+      oPaneHea:SetText( aMsgs[1] + " - " + hb_fnameName(cFile) )
    ELSE
       oMsg:MsgStop( "Wrong file format", "Error" )
    ENDIF

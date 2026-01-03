@@ -1,0 +1,22 @@
+# Sounds project file
+
+#makemode=on
+#objpath=obj
+
+{win}c_compiler=mingw
+{win}guilib=uni
+
+libs=hbzlib hbmzip minizip portaudio
+{win}libs=hbwin
+{unix}libs=rt
+
+outname=sounds
+
+srcpath=source
+*.prg
+*.c
+
+{unix}srcpath=/home/alkresin/apps/harbour/hwgui-code/hwgui/utils/editor/
+hcediext.prg
+
+{unix}def_lflags=/lib/x86_64-linux-gnu/libsndfile.so.1 `pkg-config --libs gtk+-2.0`
