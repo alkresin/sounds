@@ -96,6 +96,8 @@ STATIC aDur := { 2048, 1024, 512, 256, 128, 64, 32 }
 STATIC lStopBtn
 STATIC aPluginHandles := {}
 
+STATIC lOpenLast := .F.
+
 MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
 FUNCTION Main
@@ -203,7 +205,7 @@ FUNCTION Main
 
    SET TIMER oTimer OF oMainWindow VALUE 50 ACTION {|| TimerFunc() }
 
-   ACTIVATE WINDOW oMainWindow ON ACTIVATE {||IniPlugRead()}
+   ACTIVATE WINDOW oMainWindow ON ACTIVATE {||Iif(lOpenLast,LoadRecent(1),.F.), IniPlugRead()}
 
    ReleaseSounds()
    pa_terminate()
@@ -458,6 +460,9 @@ STATIC FUNCTION IniRead()
                         hFileMap[AllTrim(Left(arr[i],nPos-1))] := AllTrim(Substr(arr[i],nPos+2))
                      ENDIF
                   NEXT
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "openlast" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lOpenLast := ( Lower(cTemp) == "on" )
                ENDIF
             ENDIF
          ENDIF
@@ -2317,9 +2322,9 @@ STATIC FUNCTION NewNotes()
 
 STATIC FUNCTION AddRecent( cFile )
 
-   LOCAL i
+   LOCAL i, cFileMame := hb_fnameNameExt( cFile )
 
-   IF ( i := Ascan( aRecent, cFile ) ) > 0
+   IF ( i := Ascan( aRecent, {|s|hb_fnameNameExt(s)==cFileMame} ) ) > 0
       ADel( aRecent, i )
    ELSEIF Len( aRecent ) < KOL_RECENT
       Aadd( aRecent, Nil )
