@@ -32,7 +32,12 @@
 #define CLR_DLGBACK 0x154780
 #define CLR_DLGHEA  0x2F343F
 
-#define TOPPANE_HEIGHT  28
+#define N_NOTE          1
+#define N_DUR           2
+#define N_ATTR          3
+#define N_COOR          4
+
+#define TOPPANE_HEIGHT 28
 
 #define MENU_VP      1001
 #define MENU_TEST    1002
@@ -701,6 +706,8 @@ FUNCTION SetLevel( n )
 
    RETURN NIL
 
+/*  Shows or hides the scores and piano panes
+ */
 STATIC FUNCTION SetVP( lShow )
 
    LOCAL oBtn1, oBtn2, oBtnI, oSayNote1, oSayOct1, oSayInstr, oTrack
@@ -1524,7 +1531,7 @@ STATIC FUNCTION SetNotesCursor( nKey )
       oIns:cargo := !oIns:cargo
    ENDIF
    SetDlgEdi()
-   ShowNote( Iif( oScore:nCurr>0 .AND. oScore:nCurr<=Len(oScore:aNotes), oScore:aNotes[oScore:nCurr,1], 0 ) )
+   ShowNote( Iif( oScore:nCurr>0 .AND. oScore:nCurr<=Len(oScore:aNotes), oScore:aNotes[oScore:nCurr,N_NOTE], 0 ) )
    oPaneScore:Refresh()
 
    RETURN NIL
@@ -1585,16 +1592,16 @@ FUNCTION PlayKey( n )
             hb_Ains( :aNotes, :nCurr, {n,3}, .T. )
             oIns:cargo := !oIns:cargo
          ELSEIF lAcco
-            :aNotes[:nCurr,1] := n
+            :aNotes[:nCurr,N_NOTE] := n
          ELSE
-            IF Valtype( :aNotes[:nCurr,1] ) == "A"
-               AAdd( :aNotes[:nCurr,1], n )
-               ASort( :aNotes[:nCurr,1] )
+            IF Valtype( :aNotes[:nCurr,N_NOTE] ) == "A"
+               AAdd( :aNotes[:nCurr,N_NOTE], n )
+               ASort( :aNotes[:nCurr,N_NOTE] )
             ELSEIF ( i := FileMenu( oPaneNote:nLeft+200,oPaneNote:nTop+16,120,90,,,, aMenu ) ) == 2
-                  :aNotes[:nCurr,1] := { :aNotes[:nCurr,1], n }
-                  ASort( :aNotes[:nCurr,1] )
+                  :aNotes[:nCurr,N_NOTE] := { :aNotes[:nCurr,N_NOTE], n }
+                  ASort( :aNotes[:nCurr,N_NOTE] )
             ELSEIF i == 1
-               :aNotes[:nCurr,1] := n
+               :aNotes[:nCurr,N_NOTE] := n
             ENDIF
          ENDIF
          :lUpdate := .T.
@@ -1603,10 +1610,10 @@ FUNCTION PlayKey( n )
             i := Len(:aNotes)
             nTDur := Int( aDur[1] * :aMetre[1] / :aMetre[2] )
             DO WHILE i > 0
-               IF i < Len(:aNotes) .AND. Len( :aNotes[i] ) > 2 .AND. 't/' $ :aNotes[i,3]
+               IF i < Len(:aNotes) .AND. Len( :aNotes[i] ) > N_DUR .AND. 't/' $ :aNotes[i,N_ATTR]
                   EXIT
                ENDIF
-               nTDur -= Int( aDur[Int(nDur := :aNotes[i,2])] + Iif( nDur-Int(nDur)==0.5, aDur[Int(nDur)]/2, 0 ) )
+               nTDur -= Int( aDur[Int(nDur := :aNotes[i,N_DUR])] + Iif( nDur-Int(nDur)==0.5, aDur[Int(nDur)]/2, 0 ) )
                i --
             ENDDO
             IF nTDur <= 0
@@ -1669,7 +1676,7 @@ FUNCTION PlayNotes( lSele )
 
       lErr := .F.
       nSec := Seconds()
-      IF Valtype( arr := oScore:aNotes[i,1] ) == "A"
+      IF Valtype( arr := oScore:aNotes[i,N_NOTE] ) == "A"
          lAccord := .T.
          FOR n := 1 TO Len( arr )
             IF !LoadNote( arr[n] )
@@ -1696,7 +1703,7 @@ FUNCTION PlayNotes( lSele )
          ENDIF
       ELSE
          lAccord := .F.
-         n := oScore:aNotes[i,1]
+         n := oScore:aNotes[i,N_NOTE]
          IF n == 0
             IF nOrig != Nil
                pa_SetPause( aSounds[nOrig,1], .T. )
@@ -1724,7 +1731,7 @@ FUNCTION PlayNotes( lSele )
       ENDIF
       lMnm := oDlgPlay != Nil .AND. oDlgPlay:oCheck1:value
       oPaneScore:Refresh()
-      nDur := aDur[Int(oScore:aNotes[i,2])] * Iif( oScore:aNotes[i,2] - Int(oScore:aNotes[i,2]) == 0.5, 1.5, 1 ) * ( 120/oScore:nBPM )
+      nDur := aDur[Int(oScore:aNotes[i,N_DUR])] * Iif( oScore:aNotes[i,N_DUR] - Int(oScore:aNotes[i,N_DUR]) == 0.5, 1.5, 1 ) * ( 120/oScore:nBPM )
       DO WHILE Seconds() - nSec < nDur/1000
          hwg_ProcessMessage()
          hb_gcStep()
@@ -1981,69 +1988,58 @@ STATIC FUNCTION oScore_Paint()
 
 STATIC FUNCTION oScore_Other( o, msg, wp, lp)
 
-   LOCAL xm, ym, x1, nWidth, n := 1, i, nStart, nSeleEnd
+   LOCAL xm, ym, arr, nCurr := 0, n, i, nSeleEnd, nSeleStart
    LOCAL aMenu
-   STATIC nSelex := 0, nSeleLine := 0, nSeleStart := 0
+   STATIC nSelex := 0
 
    IF ( msg == WM_MOUSEMOVE .AND. nSelex > 0 ) .OR. msg == WM_LBUTTONDOWN
       xm := hwg_Loword( lp )
       ym := hwg_Hiword( lp )
-      nWidth := oBemol:nWidth + oNote8:nWidth + oScore:nBetween * 2
-      x1 := oScore:x1 + oClef1:nWidth + 8
-      IF !lScoreLong .OR. ( oScore:nScrStart == 1 .AND. ym < 140 )
-         IF oScore:nKey != 0
-            x1 += Abs( oScore:nKey ) * Iif( oScore:nKey<0, oBemol:nWidth, oDiez:nWidth )
+      //hwg_writelog( str(xm) + " " + str(ym) )
+      FOR i := 1 TO Len( oScore:aNotes )
+         arr := oScore:aNotes[i,N_COOR]
+         //hwg_writelog( str(arr[1]) + " " + str(arr[2]) + str(arr[3]) + " " + str(arr[4]) )
+         IF arr[1] <= xm .AND. arr[3] >= xm .AND. arr[2] <= ym .AND. arr[4] >= ym
+            nCurr := i
+            EXIT
          ENDIF
-         IF oScore:aMetre[1] > 0
-            x1 += 20
-         ENDIF
-      ENDIF
-      IF lScoreLong .AND. ym > 140
-         n := Int( (ym - 30) / 100 ) + 1
-         nStart := oScore:nScrStart
-         i := 0
-         DO WHILE ++i < n
-            nStart += Iif( nStart==1, oScore:nScrKol1, oScore:nScrKol2 )
-         ENDDO
-         IF nStart > Len( oScore:aNotes )
-            RETURN -1
-         ENDIF
-      ELSE
-         nStart := oScore:nScrStart
-      ENDIF
-
-      IF msg == WM_MOUSEMOVE
-         IF Abs( xm - nSelex ) > nWidth / 3
-            IF xm < x1
-               xm := x1
-            ENDIF
-            nSeleEnd := Min( nStart + Int( (xm - x1) / nWidth ), Len( oScore:aNotes ) )
-            IF nSeleEnd > nSeleStart
-               oScore:nSeleStart := nSeleStart
-               oScore:nSeleEnd := nSeleEnd
+      NEXT
+      IF msg == WM_LBUTTONDOWN .AND. xm <= 26 .AND. ym < 26
+         SwitchScore()
+      ELSEIF nCurr > 0
+         IF msg == WM_MOUSEMOVE
+            IF nSelex == 1
+               nSeleStart := oScore:nCurr
             ELSE
-               oScore:nSeleStart := nSeleEnd
+               nSeleStart := oScore:nSeleStart
+            ENDIF
+            nSelex := 2
+            nSeleEnd := oScore:nSeleEnd
+            IF nCurr >= oScore:nSeleStart
+               oScore:nSeleStart := nSeleStart
+               oScore:nSeleEnd := nCurr
+            ELSE
+               oScore:nSeleStart := nCurr
                oScore:nSeleEnd := nSeleStart
             ENDIF
-            oPaneScore:Refresh()
-         ENDIF
+            IF nSeleStart != oScore:nSeleStart .OR. nSeleEnd != oScore:nSeleEnd
+               oPaneScore:Refresh()
+            ENDIF
 
-      ELSEIF msg == WM_LBUTTONDOWN
-         IF xm > x1
-            oScore:nCurr := Min( nStart + Int( (xm - x1) / nWidth ), Len( oScore:aNotes ) )
-            nSelex := xm
-            nSeleLine := n
-            nSeleStart := Min( nStart + Int( (nSelex - x1) / nWidth ), Len( oScore:aNotes ) )
-            SetDlgEdi()
-            ShowNote( Iif( oScore:nCurr>0, oScore:aNotes[oScore:nCurr,1], 0 ) )
-            oPaneScore:Refresh()
-         ELSEIF xm <= 26 .AND. ym < 26
-            SwitchScore()
+         ELSEIF msg == WM_LBUTTONDOWN
+            IF nCurr != oScore:nCurr
+               oScore:nCurr := nCurr
+               nSelex := 1
+               SetDlgEdi()
+               ShowNote( Iif( oScore:nCurr>0, oScore:aNotes[oScore:nCurr,N_NOTE], 0 ) )
+               oPaneScore:Refresh()
+            ENDIF
+            HB_SYMBOL_UNUSED( wp )
          ENDIF
-         HB_SYMBOL_UNUSED( wp )
       ENDIF
+
    ELSEIF msg == WM_LBUTTONUP
-      nSelex := nSeleLine := nSeleStart := 0
+      nSelex := 0
    ELSEIF msg == WM_RBUTTONUP
       xm := hwg_Loword( lp )
       ym := hwg_Hiword( lp )
@@ -2103,7 +2099,7 @@ STATIC FUNCTION PaintLines( o, hDC, x1, y1 )
 
    RETURN NIL
 
-STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nStart )
+STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nLineStart )
 
    LOCAL i, j, n, nOct, nNote, nDur, nTDur, y, nLineHeight := 10, nBetween := oScore:nBetween
    LOCAL nTones, nWidth, nWBemol, oNote, ld, lBekar
@@ -2129,9 +2125,7 @@ STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nStart )
 
       nWBemol := oBemol:nWidth
       nWidth := nWBemol + oNote8:nWidth + nBetween * 2
-      IF Empty( nStart )
-         nStart := op:nScrStart
-      ENDIF
+      nStart := Iif( Empty(nLineStart), op:nScrStart, nLineStart )
       nEnd := Min( Len( aNotes ), nStart + Iif( nStart<2, op:nScrKol1, op:nScrKol2 ) - 1 )
       IF nStart < 2
          // Draw key signature
@@ -2172,129 +2166,144 @@ STATIC FUNCTION PaintNote( o, hDC, x1, y1, op, nStart )
             hwg_Drawbitmap( hDC, oIns:handle,, x1 + (nCurr-nStart)*nWidth, 0 )
          ENDIF
       ENDIF
-      FOR i := nStart TO nEnd
-         nDur := Int( aNotes[i,2] )
-         j := 0
-         DO WHILE .T.
-            n := Iif( Valtype(aNotes[i,1]) == "A", aNotes[i,1,++j], aNotes[i,1] )
-            IF n == 0
-               oNote := aPauses[nDur]
-               y := Iif( nDur==2, y1+nLineHeight*2-oNote:nHeight, y1+nLineHeight )
-               hwg_Drawtransparentbitmap( hDC, oNote:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol, ;
-                  y, CLR_WHITE )
-            ELSE
-               nNote := Int( Iif( (nNote := (n % 12)) == 0, 12, nNote ) )
-               nOct := Int( ( n - 1 ) / 12 ) + 1
-               lBekar := .F.
-               // Check for a key signature
-               IF op:nKey != 0
-                  IF op:nKey < 0
-                     IF nNote < 12 .AND. an[nNote] == an[nNote+1]
-                        IF Ascan( abem, nNote+1, 1, Abs(op:nKey) ) > 0
-                           nNote += 1
-                        ENDIF
-                     ELSE
-                        IF Ascan( abem, nNote, 1, Abs(op:nKey) ) > 0
-                           lBekar := .T.
-                        ENDIF
-                     ENDIF
-                  ELSEIF op:nKey > 0
-                     IF nNote < 12 .AND. an[nNote] == an[nNote+1]
-                        IF Ascan( adie, nNote-1, 1, op:nKey ) > 0
-                           nNote -= 1
-                        ENDIF
-                     ELSE
-                        IF Ascan( adie, nNote, 1, op:nKey ) > 0
-                           lBekar := .T.
-                        ENDIF
-                     ENDIF
-                  ENDIF
-               ENDIF
-               nTones := Iif( op:lBas, ao1[nOct], ao2[nOct] ) - an[nNote]
-               y := y1 + ( nTones - 0.5 ) * nLineHeight
+      FOR i := 1 TO Len( aNotes )
+         IF Len( aNotes[i] ) < N_ATTR
+            AAdd( aNotes[i], "" )
+         ENDIF
+         IF Len( aNotes[i] ) < N_COOR
+            AAdd( aNotes[i], Array(4) )
+         ENDIF
 
-               IF y > 0 .AND. y < o:nHeight
-                  ld := Iif( j > 1, ld, Iif( nDur == 1 .OR. nTones > 2, .F., .T. ) )
-                  oNote := Iif( ld, aBmpsD[nDur-1], aBmps[nDur] )
-
-                  IF lBekar
-                     hwg_Drawtransparentbitmap( hDC, oBekar:handle, x1+(i-nStart)*nWidth+nBetween, ;
-                        y+oNote1:nHeight-oBekar:nHeight+nLineHeight, CLR_WHITE )
-                  ELSEIF nNote < 12 .AND. an[nNote] == an[nNote+1]
-                     hwg_Drawtransparentbitmap( hDC, oBemol:handle, x1+(i-nStart)*nWidth+nBetween, ;
-                        y+oNote1:nHeight-oBemol:nHeight, CLR_WHITE )
-                  ENDIF
+         IF i >= nStart .AND. i <= nEnd
+            nDur := Int( aNotes[i,N_DUR] )
+            j := 0
+            DO WHILE .T.
+               n := Iif( Valtype(aNotes[i,N_NOTE]) == "A", aNotes[i,N_NOTE,++j], aNotes[i,N_NOTE] )
+               IF n == 0
+                  oNote := aPauses[nDur]
+                  y := Iif( nDur==2, y1+nLineHeight*2-oNote:nHeight, y1+nLineHeight )
                   hwg_Drawtransparentbitmap( hDC, oNote:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol, ;
-                     Iif( ld, y, y+oNote1:nHeight-oNote:nHeight ), CLR_WHITE )
-
-                  hwg_Selectobject( hDC, oPenGrid:handle )
-                  IF aNotes[i,2] - nDur == 0.5
-                     y := Iif( nTones-Int(nTones) == 0.5, y+nLineHeight/2, y )
-                     hwg_Drawtransparentbitmap( hDC, oDot:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth, ;
-                        y, CLR_WHITE )
-                  ENDIF
-
-                  IF nTones < -0.7
-                     y := y1 - nLineHeight
-                     DO WHILE nTones < -0.7
-                        hwg_Drawline( hDC, x1+(i-nStart)*nWidth+nWBemol, y, x1+(i-nStart)*nWidth+nWidth, y )
-                        nTones += 1
-                        y -= nLineHeight
-                     ENDDO
-                  ELSEIF nTones > 4.7
-                     y := y1 + nLineHeight * 5
-                     DO WHILE nTones > 4.7
-                        hwg_Drawline( hDC, x1+(i-nStart)*nWidth+nWBemol, y, x1+(i-nStart)*nWidth+nWidth, y )
-                        nTones -= 1
-                        y += nLineHeight
-                     ENDDO
-                  ENDIF
-               ENDIF
-            ENDIF
-            IF Valtype(aNotes[i,1]) == "N" .OR. ( Valtype(aNotes[i,1]) == "A" .AND. ;
-               j == Len(aNotes[i,1]) )
-               EXIT
-            ENDIF
-         ENDDO
-         IF Len( aNotes[i] ) > 2
-            IF 'ti1' $ aNotes[i,3]
-               // Draw tie
-               hwg_Selectobject( hDC, oPen2:handle )
-               y := y1 + ( nTones  - 0.5 ) * nLineHeight
-               IF ld
-                  hwg_Drawtransparentbitmap( hDC, oTied:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth-4, ;
-                     y-oTied:nHeight, CLR_WHITE )
+                     y, CLR_WHITE )
                ELSE
-                  hwg_Drawtransparentbitmap( hDC, oTie:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth-4, ;
-                     y+oNote1:nHeight, CLR_WHITE )
-               ENDIF
-            ENDIF
-            IF 't/' $ aNotes[i,3]
-               // Draw measure (tact)
-               nTDur := 1
-               IF op:aMetre[1] > 0 .AND. op:aMetre[2] > 0
-                  j := i
-                  nTDur := Int( aDur[1] * op:aMetre[1] / op:aMetre[2] )
-                  DO WHILE j > 0
-                     IF j < i .AND. Len( aNotes[j] ) > 2 .AND. 't/' $ aNotes[j,3]
-                        EXIT
+                  nNote := Int( Iif( (nNote := (n % 12)) == 0, 12, nNote ) )
+                  nOct := Int( ( n - 1 ) / 12 ) + 1
+                  lBekar := .F.
+                  // Check for a key signature
+                  IF op:nKey != 0
+                     IF op:nKey < 0
+                        IF nNote < 12 .AND. an[nNote] == an[nNote+1]
+                           IF Ascan( abem, nNote+1, 1, Abs(op:nKey) ) > 0
+                              nNote += 1
+                           ENDIF
+                        ELSE
+                           IF Ascan( abem, nNote, 1, Abs(op:nKey) ) > 0
+                              lBekar := .T.
+                           ENDIF
+                        ENDIF
+                     ELSEIF op:nKey > 0
+                        IF nNote < 12 .AND. an[nNote] == an[nNote+1]
+                           IF Ascan( adie, nNote-1, 1, op:nKey ) > 0
+                              nNote -= 1
+                           ENDIF
+                        ELSE
+                           IF Ascan( adie, nNote, 1, op:nKey ) > 0
+                              lBekar := .T.
+                           ENDIF
+                        ENDIF
                      ENDIF
-                     nTDur -= Int( aDur[Int(nDur := aNotes[j,2])] + Iif( nDur-Int(nDur)==0.5, aDur[Int(nDur)]/2, 0 ) )
-                     j --
-                  ENDDO
+                  ENDIF
+                  nTones := Iif( op:lBas, ao1[nOct], ao2[nOct] ) - an[nNote]
+                  y := y1 + ( nTones - 0.5 ) * nLineHeight
+
+                  IF y > 0 .AND. y < o:nHeight
+                     ld := Iif( j > 1, ld, Iif( nDur == 1 .OR. nTones > 2, .F., .T. ) )
+                     oNote := Iif( ld, aBmpsD[nDur-1], aBmps[nDur] )
+
+                     IF lBekar
+                        hwg_Drawtransparentbitmap( hDC, oBekar:handle, x1+(i-nStart)*nWidth+nBetween, ;
+                           y+oNote1:nHeight-oBekar:nHeight+nLineHeight, CLR_WHITE )
+                     ELSEIF nNote < 12 .AND. an[nNote] == an[nNote+1]
+                        hwg_Drawtransparentbitmap( hDC, oBemol:handle, x1+(i-nStart)*nWidth+nBetween, ;
+                           y+oNote1:nHeight-oBemol:nHeight, CLR_WHITE )
+                     ENDIF
+                     hwg_Drawtransparentbitmap( hDC, oNote:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol, ;
+                        Iif( ld, y, y+oNote1:nHeight-oNote:nHeight ), CLR_WHITE )
+
+                     hwg_Selectobject( hDC, oPenGrid:handle )
+                     IF aNotes[i,N_DUR] - nDur == 0.5
+                        y := Iif( nTones-Int(nTones) == 0.5, y+nLineHeight/2, y )
+                        hwg_Drawtransparentbitmap( hDC, oDot:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth, ;
+                           y, CLR_WHITE )
+                     ENDIF
+
+                     IF nTones < -0.7
+                        y := y1 - nLineHeight
+                        DO WHILE nTones < -0.7
+                           hwg_Drawline( hDC, x1+(i-nStart)*nWidth+nWBemol, y, x1+(i-nStart)*nWidth+nWidth, y )
+                           nTones += 1
+                           y -= nLineHeight
+                        ENDDO
+                     ELSEIF nTones > 4.7
+                        y := y1 + nLineHeight * 5
+                        DO WHILE nTones > 4.7
+                           hwg_Drawline( hDC, x1+(i-nStart)*nWidth+nWBemol, y, x1+(i-nStart)*nWidth+nWidth, y )
+                           nTones -= 1
+                           y += nLineHeight
+                        ENDDO
+                     ENDIF
+                  ENDIF
                ENDIF
-               IF nTDur == 0
-                  hwg_Selectobject( hDC, oPenGrid:handle )
-                  y := 0
-               ELSE
-                  hwg_Selectobject( hDC, oPenRed:handle )
-                  y := 8
+               IF Valtype(aNotes[i,N_NOTE]) == "N" .OR. ( Valtype(aNotes[i,N_NOTE]) == "A" .AND. ;
+                  j == Len(aNotes[i,N_NOTE]) )
+                  EXIT
                ENDIF
-               hwg_Drawline( hDC, x1+(i-nStart+1)*nWidth-1, y1-y, x1+(i-nStart+1)*nWidth-1, y1+nLineHeight*4+y )
+            ENDDO
+            IF !Empty( aNotes[i,N_ATTR] )
+               IF 'ti1' $ aNotes[i,N_ATTR]
+                  // Draw tie
+                  hwg_Selectobject( hDC, oPen2:handle )
+                  y := y1 + ( nTones  - 0.5 ) * nLineHeight
+                  IF ld
+                     hwg_Drawtransparentbitmap( hDC, oTied:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth-4, ;
+                        y-oTied:nHeight, CLR_WHITE )
+                  ELSE
+                     hwg_Drawtransparentbitmap( hDC, oTie:handle, x1+(i-nStart)*nWidth+nBetween+nWBemol+oNote:nWidth-4, ;
+                        y+oNote1:nHeight, CLR_WHITE )
+                  ENDIF
+               ENDIF
+               IF 't/' $ aNotes[i,N_ATTR]
+                  // Draw measure (tact)
+                  nTDur := 1
+                  IF op:aMetre[1] > 0 .AND. op:aMetre[2] > 0
+                     j := i
+                     nTDur := Int( aDur[1] * op:aMetre[1] / op:aMetre[2] )
+                     DO WHILE j > 0
+                        IF j < i .AND. Len( aNotes[j] ) > N_DUR .AND. 't/' $ aNotes[j,N_ATTR]
+                           EXIT
+                        ENDIF
+                        nTDur -= Int( aDur[Int(nDur := aNotes[j,N_DUR])] + Iif( nDur-Int(nDur)==0.5, aDur[Int(nDur)]/2, 0 ) )
+                        j --
+                     ENDDO
+                  ENDIF
+                  IF nTDur == 0
+                     hwg_Selectobject( hDC, oPenGrid:handle )
+                     y := 0
+                  ELSE
+                     hwg_Selectobject( hDC, oPenRed:handle )
+                     y := 8
+                  ENDIF
+                  hwg_Drawline( hDC, x1+(i-nStart+1)*nWidth-1, y1-y, x1+(i-nStart+1)*nWidth-1, y1+nLineHeight*4+y )
+               ENDIF
+               IF 'arp/' $ aNotes[i,N_ATTR]
+                  hwg_Drawtransparentbitmap( hDC, oArpeggio:handle, x1+(i-nStart)*nWidth-oArpeggio:nWidth, y1, CLR_WHITE )
+               ENDIF
             ENDIF
-            IF 'arp/' $ aNotes[i,3]
-               hwg_Drawtransparentbitmap( hDC, oArpeggio:handle, x1+(i-nStart)*nWidth-oArpeggio:nWidth, y1, CLR_WHITE )
-            ENDIF
+            aNotes[i,N_COOR,1] := x1+(i-nStart)*nWidth
+            aNotes[i,N_COOR,2] := y1-nLineHeight*2
+            aNotes[i,N_COOR,3] := x1+(i-nStart)*nWidth+nWidth
+            aNotes[i,N_COOR,4] := y1+nLineHeight*6
+         ELSEIF Empty( nLineStart ) .OR. i > nLineStart
+            aNotes[i,N_COOR,1] := aNotes[i,N_COOR,2] := aNotes[i,N_COOR,3] := aNotes[i,N_COOR,4] := -1
          ENDIF
       NEXT
    ENDIF
@@ -2473,20 +2482,20 @@ STATIC FUNCTION SaveNotes()
    s += '<notes>' + Chr(10) + '  '
    FOR i := 1 TO Len( aNotes )
       s += Iif( i==1, '', ',' )
-      IF Valtype( aNotes[i,1] ) == "A"
-         FOR j := 1 TO Len( aNotes[i,1] )
-            s += Iif( j==1, '', '-' ) + note2Text( aNotes[i,1,j] )
+      IF Valtype( aNotes[i,N_NOTE] ) == "A"
+         FOR j := 1 TO Len( aNotes[i,N_NOTE] )
+            s += Iif( j==1, '', '-' ) + note2Text( aNotes[i,N_NOTE,j] )
          NEXT
       ELSE
-         s += note2Text( aNotes[i,1] )
+         s += note2Text( aNotes[i,N_NOTE] )
       ENDIF
-      s1 := Ltrim( Str( aNotes[i,2] ) )
+      s1 := Ltrim( Str( aNotes[i,N_DUR] ) )
       IF ( nPos := At( ".", s1 ) ) > 0
          s1 := Left( s1, nPos + 1 )
       ENDIF
       s += '(' + s1 + ')'
-      IF Len( aNotes[i] ) > 2 .AND. !Empty( aNotes[i,3] )
-         s += '[' + aNotes[i,3] + ']'
+      IF Len( aNotes[i] ) > N_DUR .AND. !Empty( aNotes[i,N_ATTR] )
+         s += '[' + aNotes[i,N_ATTR] + ']'
       ENDIF
    NEXT
    s += Chr(10) + '</notes>' + Chr(10)
@@ -2866,10 +2875,10 @@ STATIC FUNCTION NoteEditor()
    }
    LOCAL bInsTact := {||
       IF oScore:nCurr > 0 .AND. oScore:nCurr <= Len( oScore:aNotes )
-         IF Len( oScore:aNotes[oScore:nCurr] ) == 2
+         IF Len( oScore:aNotes[oScore:nCurr] ) == N_DUR
             AAdd( oScore:aNotes[oScore:nCurr], "t/" )
          ELSE
-            oScore:aNotes[oScore:nCurr,3] := Iif( Empty(oScore:aNotes[oScore:nCurr]), "t/", "" )
+            oScore:aNotes[oScore:nCurr,N_ATTR] := Iif( Empty(oScore:aNotes[oScore:nCurr]), "t/", "" )
          ENDIF
          oScore:lUpdate := .T.
          oPaneScore:Refresh()
@@ -2878,7 +2887,7 @@ STATIC FUNCTION NoteEditor()
    }
    LOCAL bSetTie := {||
       IF oScore:nSeleStart > 0 .AND. Abs( oScore:nSeleEnd - oScore:nSeleStart ) == 1 ;
-         .AND. oScore:aNotes[oScore:nSeleStart,1] == oScore:aNotes[oScore:nSeleEnd,1]
+         .AND. oScore:aNotes[oScore:nSeleStart,N_NOTE] == oScore:aNotes[oScore:nSeleEnd,N_NOTE]
          noteSetAttr( oScore:aNotes[oScore:nSeleStart], "ti1" )
          noteSetAttr( oScore:aNotes[oScore:nSeleEnd], "ti2" )
          oScore:lUpdate := .T.
@@ -2887,7 +2896,7 @@ STATIC FUNCTION NoteEditor()
       RETURN .T.
    }
    LOCAL bSetArp := {||
-      IF !Empty( oScore:aNotes ) .AND. ValType( oScore:aNotes[oScore:nCurr,1] ) == "A"
+      IF !Empty( oScore:aNotes ) .AND. ValType( oScore:aNotes[oScore:nCurr,N_NOTE] ) == "A"
          noteSetAttr( oScore:aNotes[oScore:nCurr], "arp" )
          oScore:lUpdate := .T.
          oPaneScore:Refresh()
@@ -2994,11 +3003,11 @@ STATIC FUNCTION SetDuration( n )
    LOCAL nOld
 
    IF oScore:nCurr > 0 .AND. oScore:nCurr <= Len( oScore:aNotes )
-      nOld := oScore:aNotes[oScore:nCurr,2]
+      nOld := oScore:aNotes[oScore:nCurr,N_DUR]
       IF Valtype( n ) == "N"
-         oScore:aNotes[oScore:nCurr,2] := n + ( nOld - Int(nOld) )
+         oScore:aNotes[oScore:nCurr,N_DUR] := n + ( nOld - Int(nOld) )
       ELSE
-         oScore:aNotes[oScore:nCurr,2] := Int(nOld) + Iif( n, 0.5, 0 )
+         oScore:aNotes[oScore:nCurr,N_DUR] := Int(nOld) + Iif( n, 0.5, 0 )
       ENDIF
       oScore:lUpdate := .T.
       hwg_Redrawwindow( oPaneScore:handle, RDW_ERASE + RDW_INVALIDATE + RDW_INTERNALPAINT + RDW_UPDATENOW )
@@ -3014,8 +3023,8 @@ STATIC FUNCTION SetDlgEdi()
       RETURN Nil
    ENDIF
 
-   n := Int( oScore:aNotes[oScore:nCurr,2] )
-   oDlgEdi:oCheck1:Value := ( oScore:aNotes[oScore:nCurr,2] - n == 0.5 )
+   n := Int( oScore:aNotes[oScore:nCurr,N_DUR] )
+   oDlgEdi:oCheck1:Value := ( oScore:aNotes[oScore:nCurr,N_DUR] - n == 0.5 )
    oDlgEdi:oLenta:Value := n
 
    RETURN Nil
@@ -3038,11 +3047,11 @@ STATIC FUNCTION Transpo()
       ENDIF
       nTranspo := Val( aCombo[n] ) * Iif( nz==1, 2, -2 )
       FOR i := nStart TO nEnd
-         IF Valtype(oScore:aNotes[i,1]) == "N" .AND. oScore:aNotes[i,1] > 0
-            oScore:aNotes[i,1] := oScore:aNotes[i,1] + nTranspo
-         ELSEIF Valtype(oScore:aNotes[i,1]) == "A"
-            FOR j := 1 TO Len( oScore:aNotes[i,1] )
-               oScore:aNotes[i,1,j] := oScore:aNotes[i,1,j] + nTranspo
+         IF Valtype(oScore:aNotes[i,N_NOTE]) == "N" .AND. oScore:aNotes[i,N_NOTE] > 0
+            oScore:aNotes[i,N_NOTE] := oScore:aNotes[i,N_NOTE] + nTranspo
+         ELSEIF Valtype(oScore:aNotes[i,N_NOTE]) == "A"
+            FOR j := 1 TO Len( oScore:aNotes[i,N_NOTE] )
+               oScore:aNotes[i,N_NOTE,j] := oScore:aNotes[i,N_NOTE,j] + nTranspo
             NEXT
          ENDIF
       NEXT
@@ -3691,10 +3700,10 @@ FUNCTION noteSetAttr( arr, cAttr )
    cAttr += '/'
    IF Len( arr ) == 2
       AAdd( arr, cAttr )
-   ELSEIF cAttr $ arr[3]
-      arr[3] := StrTran( arr[3], cAttr, "" )
+   ELSEIF cAttr $ arr[N_ATTR]
+      arr[N_ATTR] := StrTran( arr[N_ATTR], cAttr, "" )
    ELSE
-      arr[3] += cAttr
+      arr[N_ATTR] += cAttr
    ENDIF
 
    RETURN Nil
@@ -3703,8 +3712,8 @@ FUNCTION noteChangeAttr( arr, cAttrOld, cAttrNew )
 
    cAttrOld += '/'
    cAttrNew += '/'
-   IF Len( arr ) > 2 .AND. cAttrOld $ arr[3]
-      arr[3] := StrTran( arr[3], cAttrOld, cAttrNew )
+   IF Len( arr ) > 2 .AND. cAttrOld $ arr[N_ATTR]
+      arr[N_ATTR] := StrTran( arr[N_ATTR], cAttrOld, cAttrNew )
    ENDIF
 
    RETURN Nil
@@ -3712,7 +3721,7 @@ FUNCTION noteChangeAttr( arr, cAttrOld, cAttrNew )
 FUNCTION noteCheckAttr( arr, cAttr )
 
    IF Len( arr ) > 2
-      RETURN (cAttr + '/') $ arr[3]
+      RETURN (cAttr + '/') $ arr[N_ATTR]
    ENDIF
 
    RETURN .F.
@@ -3767,7 +3776,7 @@ METHOD CheckBas() CLASS Score
    LOCAL i, n, nBas := 0
 
    FOR i := 1 TO Len( ::aNotes )
-      n := Iif( Valtype(::aNotes[i,1]) == "A", ::aNotes[i,1,1], ::aNotes[i,1] )
+      n := Iif( Valtype(::aNotes[i,N_NOTE]) == "A", ::aNotes[i,N_NOTE,1], ::aNotes[i,N_NOTE] )
       IF n > 0
          IF Int( ( n - 1 ) / 12 ) + 1 >= 4
             nBas ++
