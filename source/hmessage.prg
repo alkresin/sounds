@@ -85,9 +85,11 @@ METHOD Message( cText, cTitle, oImage, nAlign, ... ) CLASS HMessage
    FOR i := 5 TO Len( aParams )
       nBtnLenMax := Max( nBtnLenMax, hwg_GetTextSize( hDC, aParams[i] )[1] )
    NEXT
+#ifdef __PLATFORM__UNIX
    IF ::oFont != Nil
       hwg_Selectobject( hDC, hFont )
    ENDIF
+#endif
    hwg_ReleaseDC( HWindow():GetMain():handle, hDC )
    nLenMax += 32
    nBtnLenMax += 32
@@ -168,6 +170,7 @@ METHOD MsgGet( cTitle, ... ) CLASS HMessage
    IF ::oFont != Nil
       hFont := hwg_Selectobject( hDC, ::oFont:handle )
    ENDIF
+
    FOR i := 2 TO Len( aParams )
       nSayMax := Max( nSayMax, hwg_GetTextSize( hDC, aParams[i,1] )[1] )
       IF !Empty( aParams[i,2] )
@@ -184,11 +187,12 @@ METHOD MsgGet( cTitle, ... ) CLASS HMessage
       ENDIF
    NEXT
    nLineHeight := hwg_GetTextSize( hDC, aParams[2,1] )[2] + 2
+#ifndef __PLATFORM__UNIX
    IF ::oFont != Nil
       hwg_Selectobject( hDC, hFont )
    ENDIF
+#endif
    hwg_ReleaseDC( HWindow():GetMain():handle, hDC )
-
    nSayMax += 32
    nGetMax += 24
    nDlgWidth := Max( nSayMax + nGetMax + 40, (nBtnLenMax+16) * 2 + 24 )
