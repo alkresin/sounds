@@ -335,7 +335,7 @@ METHOD AddNote( xNote, nDur, cAttr ) CLASS Mxl
          ENDIF
          oPitch:Add( HXMLNode():New( "octave",,, Ltrim(Str(nOct)) ) )
       ENDIF
-      oNode:Add( HXMLNode():New( "duration",,, Ltrim(Str(nDur)) ) )
+      oNode:Add( HXMLNode():New( "duration",,, Ltrim(Str(Int(nDur))) ) )
       IF "ti2" $ cAttr
          oNode:Add( HXMLNode():New( "tie", HBXML_TYPE_SINGLE, { { "type", "stop" } } ) )
       ENDIF
@@ -389,4 +389,3 @@ METHOD Save( cFile ) CLASS Mxl
    ENDIF
 
    RETURN Nil
-
