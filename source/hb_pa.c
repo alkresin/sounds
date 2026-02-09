@@ -16,6 +16,28 @@
 #endif
 #define BUFFER_SIZE   512
 
+/*
+   Following functions are used in Sounds:
+   sf_initData()
+   sf_FreeData()
+   sf_ChangeData()
+   sf_SetAccord()
+   sf_GetVersion()
+
+   pa_initialize()
+   pa_terminate()
+   pa_SetVolume()
+   pa_SetPause()
+   pa_SetKeep()
+   pa_SetEnd()
+   pa_OpenStream()
+   pa_StartStream()
+   pa_isStreamActive()
+   pa_AbortStream()
+   pa_StopStream()
+   pa_getversiontext()
+ */
+
 typedef struct
 {
    SNDFILE    *sndFile;
