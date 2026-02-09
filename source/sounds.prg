@@ -2730,7 +2730,7 @@ STATIC FUNCTION ExportNotes()
          cFile := hwg_Savefile( "*.*", "MuseScore", "*.mscz", hb_DirBase() )
 #endif
          IF !Empty( cFile )
-            oExp :=Mscz():New( 2, oScore )
+            oExp := Mscz():New( 2, oScore )
             oExp:AddMeasure( oScore )
             FOR i := 1 TO Len( arr )
                oExp:AddNote( arr[i,1], arr[i,2], Iif( Len(arr[i])>2,arr[i,3],Nil ) )

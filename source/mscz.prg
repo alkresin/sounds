@@ -316,7 +316,7 @@ METHOD AddMeasure( oLM ) CLASS Mscz
       ::oMeasure:Add( oNode1 := HXMLNode():New( "voice" ) )
       ::oMeasure := oNode1
    ENDIF
-   IF Len( ::oNodePart:aItems ) == 1
+   IF ::nMeasure == 1
       ::oMeasure:Add( oNode1 := HXMLNode():New( "Clef" ) )
       oNode1:Add( HXMLNode():New( "concertClefType",,, Iif(oLM:lBas,"F","G") ) )
       oNode1:Add( HXMLNode():New( "transposingClefType",,, Iif(oLM:lBas,"F","G") ) )
