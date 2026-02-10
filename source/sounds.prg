@@ -102,6 +102,7 @@ STATIC lStopBtn
 STATIC aPluginHandles := {}
 
 STATIC lOpenLast := .F.
+STATIC cEol := Chr(10)
 
 MEMVAR oMsg, aMsgs, pClr, aPlugMenu, bPlugNote, nCurrVol, nDelayAcc
 
@@ -2632,7 +2633,8 @@ STATIC FUNCTION midi_SeleChn( arr, cFile, oMidi )
 
 STATIC FUNCTION ExportNotes()
 
-   LOCAL oDlg1, oPanel, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5, l1 := .F., l2 := .F., l3 := .F., l4 := .F., l5 := .F.
+   LOCAL oDlg1, oPanel, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5, oCheck6
+   LOCAL l1 := .F., l2 := .F., l3 := .F., l4 := .F., l5 := .F., l6 := .F.
    LOCAL cFile, oExp, i, arr := oScore:aNotes, aMidiOpt
    STATIC aMidiInstr := { {"Acoustic Grand Piano",0}, {"Rock Organ",18}, {"Church Organ",19}, {"Accordion",21}, ;
       {"Acoustic Guitar (nylon)",24}, {"Acoustic Guitar (steel)",25}, {"Electric Guitar (jazz)",26}, ;
@@ -2643,7 +2645,7 @@ STATIC FUNCTION ExportNotes()
       RETURN Nil
    ENDIF
 
-   INIT DIALOG oDlg1 TITLE "" AT 100, 100 SIZE 300, 240 ;
+   INIT DIALOG oDlg1 TITLE "" AT 100, 100 SIZE 300, 280 ;
       BACKCOLOR pClr["topdark"] STYLE WND_NOTITLE + WND_NOSIZEBOX
    oDlg1:oParent := oMainWindow
 
@@ -2665,6 +2667,9 @@ STATIC FUNCTION ExportNotes()
    @ 20, TOPPANE_HEIGHT+140 GET CHECKBOX oCheck5 VAR l5 CAPTION "MuseScore (mscz)" SIZE oDlg1:nWidth-40, 24 ;
       COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
 
+   @ 20, TOPPANE_HEIGHT+170 GET CHECKBOX oCheck6 VAR l6 CAPTION "Lilypond (ly)" SIZE oDlg1:nWidth-40, 24 ;
+      COLOR CLR_WHITE BACKCOLOR pClr["clr2"]
+
    @ 20, oDlg1:nHeight-40 OWNERBUTTON SIZE 70, 30 TEXT aMsgs[13] COLOR CLR_BLACK ;
       ON SIZE ANCHOR_LEFTABS + ANCHOR_RIGHTABS + ANCHOR_BOTTOMABS ;
       ON CLICK {|| oDlg1:lResult:=.T.,hwg_EndDialog() }
@@ -2677,7 +2682,7 @@ STATIC FUNCTION ExportNotes()
 
    ACTIVATE DIALOG oDlg1
 
-   IF oDlg1:lResult .AND. ( l1 .OR. l2  .OR. l3  .OR. l4  .OR. l5 )
+   IF oDlg1:lResult .AND. ( l1 .OR. l2 .OR. l3 .OR. l4 .OR. l5 .OR. l6 )
 
       IF l1
 #ifdef __PLATFORM__UNIX
@@ -2746,10 +2751,48 @@ STATIC FUNCTION ExportNotes()
             ENDIF
          ENDIF
       ENDIF
-
+      IF l6
+#ifdef __PLATFORM__UNIX
+         cFile := hwg_SelectfileEx( , hb_DirBase(), { { "Lilypond", "*.ly" } } )
+#else
+         cFile := hwg_Savefile( "*.*", "Lilypond", "*.ly", hb_DirBase() )
+#endif
+         IF !Empty( cFile )
+            IF Empty( hb_fnameExt( cFile ) )
+               cFile := hb_fnameExtSet( cFile, "ly" )
+            ENDIF
+            IF File( cFile ) .AND. !oMsg:MsgYesNo( aMsgs[53] )
+               RETURN Nil
+            ENDIF
+            SaveLy( cFile )
+         ENDIF
+      ENDIF
    ENDIF
 
    RETURN NIL
+
+STATIC FUNCTION SaveLy( cFile )
+
+   LOCAL s := '\version "2.24.1"' + cEol
+
+   IF !Empty( oScore:cTitle )
+      s += '\header {' + + cEol + '  title = "' + oScore:cTitle + '' + cEol + '  }' + cEol
+   ENDIF
+
+   s += "PartP =  \relative d' {" + cEol
+
+   s += '  }' + cEol
+
+   s += '  \score {' + cEol + '    <<' + cEol + '      \new Staff' + cEol + ;
+     '      <<' + cEol + '      \context Staff <<' + cEol + ;
+     '        \context Voice = "PartP" {  \PartP }' + cEol + '       >>' + cEol + ;
+     '    >>' + ceol + '  >>' + cEol + '}' + cEol
+
+   hb_MemoWrit( cFile, s )
+   AddRecent( cFile )
+   oScore:lUpdate := .F.
+
+   RETURN Nil
 
 FUNCTION Player()
 
