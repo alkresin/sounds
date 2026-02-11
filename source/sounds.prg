@@ -2797,9 +2797,13 @@ STATIC FUNCTION SaveLy( cFile )
          s += '>'
       ELSE
          s1 := note2Text( aNotes[i,N_NOTE] )
-         nOct := Val( Right( s1,1 ) )
-         s1 := Lower(Left( s1,1 )) + Iif( Substr( s1,2,1 ) == 'b', "es", "" ) + ;
-            Iif( nOct==3, "", Iif( nOct<3, Replicate(',',3-nOct), Replicate("'",nOct-3) ) )
+         IF Empty( s1 )
+            s1 := "r"
+         ELSE
+            nOct := Val( Right( s1,1 ) )
+            s1 := Lower(Left( s1,1 )) + Iif( Substr( s1,2,1 ) == 'b', "es", "" ) + ;
+               Iif( nOct==3, "", Iif( nOct<3, Replicate(',',3-nOct), Replicate("'",nOct-3) ) )
+         ENDIF
          s += s1
       ENDIF
       s1 := Ltrim( Str( Int(2**(Int(aNotes[i,N_DUR])-1)) ) )
