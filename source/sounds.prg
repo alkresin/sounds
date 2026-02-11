@@ -2773,23 +2773,53 @@ STATIC FUNCTION ExportNotes()
 
 STATIC FUNCTION SaveLy( cFile )
 
-   LOCAL s := '\version "2.24.1"' + cEol
+   LOCAL i, j, aNotes := oScore:aNotes
+   LOCAL s := '\version "2.24.1"' + cEol + cEol, s1, nOct
 
    IF !Empty( oScore:cTitle )
-      s += '\header {' + + cEol + '  title = "' + oScore:cTitle + '' + cEol + '  }' + cEol
+      s += '\header {' + + cEol + '  title = "' + oScore:cTitle + '"' + cEol + '  }' + cEol + cEol
    ENDIF
 
-   s += "PartP =  \relative d' {" + cEol
+   s += "PartP = {" + cEol
+   s += '\clef ' + Iif( oScore:lBas,"bass", "treble" ) + ' \time ' + ;
+      Ltrim(Str(oScore:aMetre[1])) + '/' + Ltrim(Str(oScore:aMetre[2])) + ' |' + cEol
 
-   s += '  }' + cEol
+   FOR i := 1 TO Len( aNotes )
+      IF Valtype( aNotes[i,N_NOTE] ) == "A"
+         s += '<'
+         FOR j := 1 TO Len( aNotes[i,N_NOTE] )
+            s1 := note2Text( aNotes[i,N_NOTE,j] )
+            nOct := Val( Right( s1,1 ) )
+            s1 := Lower(Left( s1,1 )) + Iif( Substr( s1,2,1 ) == 'b', "es", "" ) + ;
+               Iif( nOct==3, "", Iif( nOct<3, Replicate(',',3-nOct), Replicate("'",nOct-3) ) )
+            s += s1
+         NEXT
+         s += '>'
+      ELSE
+         s1 := note2Text( aNotes[i,N_NOTE] )
+         nOct := Val( Right( s1,1 ) )
+         s1 := Lower(Left( s1,1 )) + Iif( Substr( s1,2,1 ) == 'b', "es", "" ) + ;
+            Iif( nOct==3, "", Iif( nOct<3, Replicate(',',3-nOct), Replicate("'",nOct-3) ) )
+         s += s1
+      ENDIF
+      s1 := Ltrim( Str( Int(2**(Int(aNotes[i,N_DUR])-1)) ) )
+      IF aNotes[i,N_DUR] > Int(aNotes[i,N_DUR])
+         s1 += '.'
+      ENDIF
+      s += s1 + ' '
+      IF Len( aNotes[i] ) > N_DUR .AND. !Empty( aNotes[i,N_ATTR] ) .AND. aNotes[i,N_ATTR] == "t/"
+         s += '|' + cEol
+      ENDIF
+   NEXT
 
-   s += '  \score {' + cEol + '    <<' + cEol + '      \new Staff' + cEol + ;
-     '      <<' + cEol + '      \context Staff <<' + cEol + ;
-     '        \context Voice = "PartP" {  \PartP }' + cEol + '       >>' + cEol + ;
-     '    >>' + ceol + '  >>' + cEol + '}' + cEol
+   s += '}' + cEol + cEol
+
+   s += '\score {' + cEol + '  <<' + cEol + '    \new Staff' + cEol + ;
+     '    <<' + cEol + '    \context Staff <<' + cEol + ;
+     '      \context Voice = "PartP" {  \PartP }' + cEol + '     >>' + cEol + ;
+     '  >>' + ceol + '  >>' + cEol + '}' + cEol
 
    hb_MemoWrit( cFile, s )
-   AddRecent( cFile )
    oScore:lUpdate := .F.
 
    RETURN Nil
