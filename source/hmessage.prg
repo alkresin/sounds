@@ -85,7 +85,7 @@ METHOD Message( cText, cTitle, oImage, nAlign, ... ) CLASS HMessage
    FOR i := 5 TO Len( aParams )
       nBtnLenMax := Max( nBtnLenMax, hwg_GetTextSize( hDC, aParams[i] )[1] )
    NEXT
-#ifdef __PLATFORM__UNIX
+#ifndef __PLATFORM__UNIX
    IF ::oFont != Nil
       hwg_Selectobject( hDC, hFont )
    ENDIF
